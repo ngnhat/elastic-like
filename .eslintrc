@@ -1,0 +1,21 @@
+extends:
+  - airbnb-base
+
+plugins:
+  - jest
+
+env:
+  es6: true
+  node: true
+  jest: true
+
+rules:
+  radix: 0
+  no-console: 0
+  no-plusplus: 0
+  no-unreachable: 0
+  global-require: 0
+  no-param-reassign: 0
+  no-underscore-dangle: 0
+  no-restricted-syntax: 0
+  object-curly-newline: 0

@@ -1,0 +1,25 @@
+{
+  "name": "elastic-like",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "ngnhat | ngnhatjs@gmail.com",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "icu-wordsplit": "^0.3.0",
+    "immutable": "^4.0.0-rc.12",
+    "tokenizers": "^0.1.1",
+    "wink-bm25-text-search": "^3.0.1",
+    "wink-nlp-utils": "^2.0.5"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-jest": "^22.5.1",
+    "jest": "^24.8.0"
+  }
+}

@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`single field multiple documents 1`] = `
+Array [
+  Object {
+    "score": 1.1143606456362491,
+    "source": Object {
+      "Code": "ccc",
+      "Id": 3,
+      "Name": "ccc ddd eee",
+    },
+  },
+  Object {
+    "score": 0.13353139262452257,
+    "source": Object {
+      "Code": "aaa",
+      "Id": 1,
+      "Name": "aaa bbb ccc",
+    },
+  },
+  Object {
+    "score": 0.13353139262452257,
+    "source": Object {
+      "Code": "bbb",
+      "Id": 2,
+      "Name": "bbb ccc ddd",
+    },
+  },
+]
+`;
