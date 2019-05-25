@@ -47,6 +47,8 @@ class ElasticLike {
     let { docIdTokensIndex, fieldLengthIndex, fieldCountIndex } = this;
     const { [docKey]: docId } = document;
 
+    if (!docId) { return false; }
+
     this.documentIndex = documentIndex.set(docId, document);
 
     this.tokenDocIdsIndex = tokenDocIdsIndex.map((tokenDocIds, field) => {
@@ -110,9 +112,7 @@ class ElasticLike {
     const { docKey } = this;
     const { [docKey]: docId } = document;
 
-    if (!docId) {
-      return false;
-    }
+    if (!docId) { return false; }
 
     this.delete(docId);
 
