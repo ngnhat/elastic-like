@@ -1,3 +1,6 @@
+/**
+ * Created by ngnhat on Sat May 25 2019
+ */
 const { Map, Set } = require('immutable');
 const { standardTokenizer, asciiFoldingTokenizer } = require('tokenizers');
 
@@ -98,6 +101,12 @@ class Store {
     return true;
   }
 
+  /**
+   * the same as elasticsearch query with the following options:
+   * query = multiple_match
+   * type = most_fields
+   * operator = and
+   */
   search(keyword = '') {
     const {
       mapping,

@@ -1,3 +1,6 @@
+/**
+ * Created by ngnhat on Sat May 25 2019
+ */
 const Store = require('../index');
 const simpleData = require('./example-data/simple-data.json');
 

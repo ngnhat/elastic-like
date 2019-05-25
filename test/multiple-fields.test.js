@@ -1,6 +1,9 @@
+/**
+ * Created by ngnhat on Sat May 25 2019
+ */
 const Store = require('../index');
 
-describe('single field', () => {
+describe('multiple fields', () => {
   it('multiple documents', () => {
     const store = new Store();
 
@@ -10,6 +13,8 @@ describe('single field', () => {
     store.add({ Id: 4, Code: 'ddd', Name: 'ddd eee fff' });
 
     expect(store.search('ccc')).toMatchSnapshot();
+    expect(store.search('eee')).toMatchSnapshot();
+    expect(store.search('fff')).toMatchSnapshot();
   });
 
   it('multiple documents - multiple terms', () => {
