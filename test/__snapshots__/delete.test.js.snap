@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`single field: multiple doc - single term 1`] = `
+Array [
+  Object {
+    "score": 1.052597247134536,
+    "source": Object {
+      "Code": "4",
+      "Id": 4,
+      "Name": "Brown fox hahaha brown dog",
+    },
+  },
+]
+`;

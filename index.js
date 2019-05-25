@@ -24,7 +24,6 @@ class Store {
     } = config;
     const mappingFields = Object.keys(mapping);
 
-
     this.docKey = docKey;
     this.mapping = mapping;
 
@@ -42,25 +41,61 @@ class Store {
 
   add(document = {}) {
     const { docKey, mapping, documentIndex, tokenDocIdsIndex } = this;
+    let { docIdTokensIndex, fieldLengthIndex, fieldCountIndex } = this;
     const { [docKey]: id } = document;
+
     this.documentIndex = documentIndex.set(id, document);
 
-    this.tokenDocIdsIndex = tokenDocIdsIndex.map((fieldValue, field) => {
+    this.tokenDocIdsIndex = tokenDocIdsIndex.map((tokenDocIds, field) => {
       const { [field]: value = '' } = document;
       const { [field]: { analyzer: analyzerName = 'standard' } = {} } = mapping;
       const docTerms = getAnalyzer(analyzerName)(`${value}`);
       const termLength = docTerms.length;
 
-      this.docIdTokensIndex = this.docIdTokensIndex.setIn([field, id], docTerms);
-      this.fieldLengthIndex = this.fieldLengthIndex.update(field, 0, length => length + termLength);
-      this.fieldCountIndex = this.fieldCountIndex.update(field, 0, count => (
+      docIdTokensIndex = docIdTokensIndex.setIn([field, id], docTerms);
+      fieldLengthIndex = fieldLengthIndex.update(field, 0, length => length + termLength);
+      fieldCountIndex = fieldCountIndex.update(field, 0, count => (
         count + (termLength ? 1 : 0)
       ));
 
       return docTerms.reduce((acc, term) => (
         acc.update(term, new Set(), listIds => listIds.add(id))
-      ), fieldValue);
+      ), tokenDocIds);
     });
+
+    this.docIdTokensIndex = docIdTokensIndex;
+    this.fieldLengthIndex = fieldLengthIndex;
+    this.fieldCountIndex = fieldCountIndex;
+
+    return true;
+  }
+
+  delete(docId) {
+    let { tokenDocIdsIndex, fieldLengthIndex, fieldCountIndex } = this;
+    const { documentIndex, docIdTokensIndex } = this;
+
+    if (!docId) { return false; }
+
+    this.docIdTokensIndex = docIdTokensIndex.map((docIdTokens, field) => {
+      const tokens = docIdTokens.get(docId, []);
+
+      tokens.forEach((token) => {
+        tokenDocIdsIndex = tokenDocIdsIndex.deleteIn([field, token, docId]);
+      });
+
+      fieldCountIndex = fieldCountIndex.update(field, 0, value => Math.max(value - 1, 0));
+      fieldLengthIndex = fieldLengthIndex.update(field, 0, value => value - tokens.length);
+
+      return docIdTokens.delete(docId);
+    });
+
+    this.tokenDocIdsIndex = tokenDocIdsIndex;
+    this.documentIndex = documentIndex.delete(docId);
+
+    this.fieldLengthIndex = fieldLengthIndex;
+    this.fieldCountIndex = fieldCountIndex;
+
+    return true;
   }
 
   search(keyword = '') {
@@ -73,21 +108,21 @@ class Store {
       tokenDocIdsIndex,
     } = this;
 
-    const documentIds = tokenDocIdsIndex.reduce((acc, fieldValue, field) => {
+    const documentIds = tokenDocIdsIndex.reduce((acc, tokenDocIds, field) => {
       const { [field]: { analyzer = 'standard' } = {} } = mapping;
       const docFieldCount = fieldCountIndex.get(field, 1);
       const docFieldLength = fieldLengthIndex.get(field, 0);
       const docTerms = getAnalyzer(analyzer)(`${keyword}`);
 
       const scoreDocs = docTerms.reduce((accum, term) => {
-        const idsTerm = fieldValue.get(term, new Set());
+        const idsTerm = tokenDocIds.get(term, new Set());
         const docFieldFreq = idsTerm.count();
         const avgdl = docFieldLength / docFieldCount;
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
         const scores = idsTerm
           .filter((docId) => { // operator=and
-            const tokens = docIdTokensIndex.getIn([field, docId]);
+            const tokens = docIdTokensIndex.getIn([field, docId], []);
             return docTerms.every(docTerm => tokens.includes(docTerm));
           })
           .reduce((accDoc, docId) => {
