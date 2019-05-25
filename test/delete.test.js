@@ -3,7 +3,7 @@
  */
 const Store = require('../index');
 
-describe('single field:', () => {
+describe('delete a document:', () => {
   it('single doc - single term', () => {
     const store = new Store();
 

@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`update a document: exists 1`] = `
+Array [
+  Object {
+    "score": 0.28768207245178085,
+    "source": Object {
+      "Code": "abc",
+      "Id": 1,
+      "Name": "quick fox updated.",
+    },
+  },
+]
+`;
+
+exports[`update a document: non exists 1`] = `
+Array [
+  Object {
+    "score": 0.28768207245178085,
+    "source": Object {
+      "Code": "aaa",
+      "Id": 1,
+      "Name": "quick brown fox",
+    },
+  },
+]
+`;

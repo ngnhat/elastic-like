@@ -16,7 +16,7 @@ const getAnalyzer = (analyzerName = 'standard') => (
 const B = 0.75;
 const K1 = 1.2;
 
-class Store {
+class ElasticLike {
   constructor(config = {}) {
     const {
       docKey = 'Id',
@@ -45,9 +45,9 @@ class Store {
   add(document = {}) {
     const { docKey, mapping, documentIndex, tokenDocIdsIndex } = this;
     let { docIdTokensIndex, fieldLengthIndex, fieldCountIndex } = this;
-    const { [docKey]: id } = document;
+    const { [docKey]: docId } = document;
 
-    this.documentIndex = documentIndex.set(id, document);
+    this.documentIndex = documentIndex.set(docId, document);
 
     this.tokenDocIdsIndex = tokenDocIdsIndex.map((tokenDocIds, field) => {
       const { [field]: value = '' } = document;
@@ -55,14 +55,14 @@ class Store {
       const docTerms = getAnalyzer(analyzerName)(`${value}`);
       const termLength = docTerms.length;
 
-      docIdTokensIndex = docIdTokensIndex.setIn([field, id], docTerms);
+      docIdTokensIndex = docIdTokensIndex.setIn([field, docId], docTerms);
       fieldLengthIndex = fieldLengthIndex.update(field, 0, length => length + termLength);
       fieldCountIndex = fieldCountIndex.update(field, 0, count => (
         count + (termLength ? 1 : 0)
       ));
 
       return docTerms.reduce((acc, term) => (
-        acc.update(term, new Set(), listIds => listIds.add(id))
+        acc.update(term, new Set(), listIds => listIds.add(docId))
       ), tokenDocIds);
     });
 
@@ -74,31 +74,49 @@ class Store {
   }
 
   delete(docId) {
+    if (!docId) { return false; }
+
     let { tokenDocIdsIndex, fieldLengthIndex, fieldCountIndex } = this;
     const { documentIndex, docIdTokensIndex } = this;
-
-    if (!docId) { return false; }
 
     this.docIdTokensIndex = docIdTokensIndex.map((docIdTokens, field) => {
       const tokens = docIdTokens.get(docId, []);
 
       tokens.forEach((token) => {
         tokenDocIdsIndex = tokenDocIdsIndex.deleteIn([field, token, docId]);
+
+        if (!tokenDocIdsIndex.getIn([field, token]).count()) {
+          tokenDocIdsIndex = tokenDocIdsIndex.deleteIn([field, token]);
+        }
       });
 
       fieldCountIndex = fieldCountIndex.update(field, 0, value => Math.max(value - 1, 0));
-      fieldLengthIndex = fieldLengthIndex.update(field, 0, value => value - tokens.length);
+      fieldLengthIndex = fieldLengthIndex.update(field, 0, value => (
+        Math.max(value - tokens.length, 0)
+      ));
 
       return docIdTokens.delete(docId);
     });
 
-    this.tokenDocIdsIndex = tokenDocIdsIndex;
     this.documentIndex = documentIndex.delete(docId);
-
+    this.tokenDocIdsIndex = tokenDocIdsIndex;
     this.fieldLengthIndex = fieldLengthIndex;
     this.fieldCountIndex = fieldCountIndex;
 
     return true;
+  }
+
+  update(document = {}) {
+    const { docKey } = this;
+    const { [docKey]: docId } = document;
+
+    if (!docId) {
+      return false;
+    }
+
+    this.delete(docId);
+
+    return this.add(document);
   }
 
   /**
@@ -161,4 +179,4 @@ class Store {
   }
 }
 
-module.exports = Store;
+module.exports = ElasticLike;

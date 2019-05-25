@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`single field: multiple doc - single term 1`] = `
+exports[`delete a document: multiple doc - single term 1`] = `
 Array [
   Object {
     "score": 1.052597247134536,
