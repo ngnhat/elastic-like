@@ -1,9 +1,24 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`single field multiple documents - multiple terms 1`] = `
+Array [
+  Object {
+    "score": 1.8971199848858813,
+    "source": Object {
+      "Code": "aaa",
+      "Id": 1,
+      "Name": "aaa bbb ccc",
+    },
+  },
+]
+`;
+
+exports[`single field multiple documents - multiple terms 2`] = `Array []`;
+
 exports[`single field multiple documents 1`] = `
 Array [
   Object {
-    "score": 1.1143606456362491,
+    "score": 1.5606477482646686,
     "source": Object {
       "Code": "ccc",
       "Id": 3,
@@ -11,7 +26,7 @@ Array [
     },
   },
   Object {
-    "score": 0.13353139262452257,
+    "score": 0.3566749439387324,
     "source": Object {
       "Code": "aaa",
       "Id": 1,
@@ -19,7 +34,7 @@ Array [
     },
   },
   Object {
-    "score": 0.13353139262452257,
+    "score": 0.3566749439387324,
     "source": Object {
       "Code": "bbb",
       "Id": 2,

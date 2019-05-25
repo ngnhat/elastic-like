@@ -1,14 +1,21 @@
 const Store = require('../index');
 
-describe('single field', () => {
-  it('a single document', () => {
+describe('single field:', () => {
+  it('single doc - single term', () => {
     const store = new Store();
     store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
     expect(store.search('fox')).toMatchSnapshot();
   });
 
-  it('multiple documents', () => {
+  it('single doc - multiple term', () => {
+    const store = new Store();
+    store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
+
+    expect(store.search('quick fox')).toMatchSnapshot();
+  });
+
+  it('multiple doc - single term', () => {
     const store = new Store();
     store.add({ Id: 1, Code: '1', Name: 'The quick brown fox' });
     store.add({ Id: 2, Code: '2', Name: 'The quick brown fox jumps over the lazy dog' });
@@ -18,7 +25,3 @@ describe('single field', () => {
     expect(store.search('hahaha')).toMatchSnapshot();
   });
 });
-
-// { Id: 1, Code: 'aaa', Name: 'aaa bbb ccc' },
-// { Id: 2, Code: 'bbb', Name: 'bbb ccc ddd' },
-// { Id: 3, Code: 'ccc', Name: 'ccc ddd eee' },

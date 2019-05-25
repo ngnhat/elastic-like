@@ -1,0 +1,68 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: asciifolding 1`] = `
+Array [
+  Object {
+    "score": 0.39556284962119864,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: asciifolding 2`] = `
+Array [
+  Object {
+    "score": 0.39556284962119864,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: asciifolding 3`] = `
+Array [
+  Object {
+    "score": 0.39556284962119864,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: standard 1`] = `
+Array [
+  Object {
+    "score": 0.28768207245178085,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: standard 2`] = `
+Array [
+  Object {
+    "score": 0.28768207245178085,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`vietnamese: buổi trưa ăn bưởi chua: standard 3`] = `Array []`;
