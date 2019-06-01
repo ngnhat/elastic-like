@@ -84,13 +84,14 @@ class ElasticLike {
     this.docIdTokensIndex = docIdTokensIndex.map((docIdTokens, field) => {
       const tokens = docIdTokens.get(docId, []);
 
-      tokens.forEach((token) => {
-        tokenDocIdsIndex = tokenDocIdsIndex.deleteIn([field, token, docId]);
+      tokenDocIdsIndex = tokens.reduce((acc, token) => {
+        const newAcc = acc.deleteIn([field, token, docId]);
+        const currentTokenDocIds = newAcc.getIn([field, token]);
 
-        if (!tokenDocIdsIndex.getIn([field, token]).count()) {
-          tokenDocIdsIndex = tokenDocIdsIndex.deleteIn([field, token]);
-        }
-      });
+        if (!currentTokenDocIds.count()) { return newAcc.deleteIn([field, token]); }
+
+        return newAcc;
+      }, tokenDocIdsIndex);
 
       fieldCountIndex = fieldCountIndex.update(field, 0, value => Math.max(value - 1, 0));
       fieldLengthIndex = fieldLengthIndex.update(field, 0, value => (
@@ -135,13 +136,13 @@ class ElasticLike {
       tokenDocIdsIndex,
     } = this;
 
-    const documentIds = tokenDocIdsIndex.reduce((acc, tokenDocIds, field) => {
+    const docScoreIndex = tokenDocIdsIndex.reduce((docScoreAcc, tokenDocIds, field) => {
       const { [field]: { analyzer = 'standard' } = {} } = mapping;
       const docFieldCount = fieldCountIndex.get(field, 1);
       const docFieldLength = fieldLengthIndex.get(field, 0);
       const docTerms = getAnalyzer(analyzer)(`${keyword}`);
 
-      const scoreDocs = docTerms.reduce((accum, term) => {
+      return docTerms.reduce((fieldDocScoreAcc, term) => {
         const idsTerm = tokenDocIds.get(term, new Set());
         const docFieldFreq = idsTerm.count();
         const avgdl = docFieldLength / docFieldCount;
@@ -164,13 +165,11 @@ class ElasticLike {
 
         return scores.reduce((accScore, score, docId) => (
           accScore.update(docId, 0, currentScore => currentScore + score)
-        ), accum);
-      }, acc);
-
-      return scoreDocs;
+        ), fieldDocScoreAcc);
+      }, docScoreAcc);
     }, new Map());
 
-    return documentIds
+    return docScoreIndex
       .sort((a, b) => b - a)
       .reduce((acc, score, documentId) => ([
         ...acc,
