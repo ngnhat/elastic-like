@@ -3801,10 +3801,10 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-tokenizers@^0.1.7:
-  version "0.1.7"
-  resolved "https://registry.yarnpkg.com/tokenizers/-/tokenizers-0.1.7.tgz#8f9cd51edfab19edcca02ef3e7c8dfb0247d426d"
-  integrity sha512-FD6IU3SVGDVa2ufyCjzm+1f3g5zaPUMthMsZp3EfgaVUgwNYLOGGnLDbHntb4X1t3FNUq6aZenFgBxTRsNF/qA==
+tokenizers@^0.1.8:
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/tokenizers/-/tokenizers-0.1.8.tgz#e862b3746d86a0eb9c9f19431aa47ca58f40de75"
+  integrity sha512-q4kOEeTwamEBqignIw0NznO9KOo3dW3G6YK+2ZlZbiFbtknZObp2ejFEh8ClODMDYPDvDiroygTYfYMMG7bj+A==
 
 tough-cookie@^2.3.3, tough-cookie@^2.3.4:
   version "2.5.0"
