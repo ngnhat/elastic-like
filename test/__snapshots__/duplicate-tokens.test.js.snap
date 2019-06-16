@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`duplicates buổi trưa ăn buổi chua 1`] = `Array []`;
+
+exports[`duplicates buổi trưa ăn bưởi chua 1`] = `
+Array [
+  Object {
+    "score": 1.4384103622589042,
+    "source": Object {
+      "Code": "code001",
+      "Id": 1,
+      "Name": "buổi trưa ăn bưởi chua",
+    },
+  },
+]
+`;
+
+exports[`duplicates bưởi trưa ăn bưởi chua 1`] = `Array []`;
+
+exports[`duplicates chua chua 1`] = `Array []`;
