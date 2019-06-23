@@ -16,6 +16,10 @@ const getAnalyzer = (analyzerName = 'standard') => (
 const B = 0.75;
 const K1 = 1.2;
 
+const bm25Scoring = ({ idf, freq, dl, avgdl } = {}) => (
+  idf * freq * (K1 + 1) / (freq + K1 * (1 - B + B * dl / avgdl))
+);
+
 class ElasticLike {
   constructor(config = {}) {
     const {
@@ -145,7 +149,7 @@ class ElasticLike {
 
     const docScoreIndex = tokenDocIdsIndex.reduce((docScoreAcc, tokenDocIds, field) => {
       const { [field]: { analyzer = 'standard' } = {} } = mapping;
-      const docFieldCount = fieldCountIndex.get(field, 1);
+      const docFieldCount = fieldCountIndex.get(field, 0);
       const docFieldLength = fieldLengthIndex.get(field, 0);
       const docTerms = getAnalyzer(analyzer)(`${keyword}`);
 
@@ -156,7 +160,7 @@ class ElasticLike {
       return terms.reduce((fieldDocScoreAcc, _, term) => {
         const idsTerm = tokenDocIds.get(term, new Set());
         const docFieldFreq = idsTerm.count();
-        const avgdl = docFieldLength / docFieldCount;
+        const avgdl = docFieldLength / Math.max(docFieldCount, 1);
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
         const scores = idsTerm
@@ -173,9 +177,7 @@ class ElasticLike {
             const freq = tokens.filter((__, token) => token === term)
               .reduce((acc, count) => acc + count, 0);
 
-            const score = idf * freq * (K1 + 1) / (freq + K1 * (1 - B + B * dl / avgdl));
-
-            return accDoc.set(docId, score);
+            return accDoc.set(docId, bm25Scoring({ idf, freq, dl, avgdl }));
           }, new Map());
 
         return scores.reduce((accScore, score, docId) => (
