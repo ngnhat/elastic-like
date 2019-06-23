@@ -54,16 +54,22 @@ class ElasticLike {
     this.tokenDocIdsIndex = tokenDocIdsIndex.map((tokenDocIds, field) => {
       const { [field]: value = '' } = document;
       const { [field]: { analyzer: analyzerName = 'standard' } = {} } = mapping;
-      const docTerms = getAnalyzer(analyzerName)(`${value}`);
-      const termLength = docTerms.length;
+      const _docTerms = getAnalyzer(analyzerName)(`${value}`);
+      const termLength = _docTerms.length;
 
-      docIdTokensIndex = docIdTokensIndex.setIn([field, docId], docTerms);
+      const docTerms = _docTerms.reduce((acc, term) => (
+        acc.update(term, 0, count => count + 1)
+      ), new Map());
+
+      docIdTokensIndex = docIdTokensIndex
+        .setIn([field, docId, 'terms'], docTerms)
+        .setIn([field, docId, 'termsLength'], termLength);
       fieldLengthIndex = fieldLengthIndex.update(field, 0, length => length + termLength);
       fieldCountIndex = fieldCountIndex.update(field, 0, count => (
         count + (termLength ? 1 : 0)
       ));
 
-      return docTerms.reduce((acc, term) => (
+      return docTerms.reduce((acc, _, term) => (
         acc.update(term, new Set(), listIds => listIds.add(docId))
       ), tokenDocIds);
     });
@@ -82,9 +88,10 @@ class ElasticLike {
     const { documentIndex, docIdTokensIndex } = this;
 
     this.docIdTokensIndex = docIdTokensIndex.map((docIdTokens, field) => {
-      const tokens = docIdTokens.get(docId, []);
+      const tokens = docIdTokens.getIn([docId, 'terms'], []);
+      const termLength = docIdTokens.getIn([docId, 'termsLength'], 0);
 
-      tokenDocIdsIndex = tokens.reduce((acc, token) => {
+      tokenDocIdsIndex = tokens.reduce((acc, _, token) => {
         const newAcc = acc.deleteIn([field, token, docId]);
         const currentTokenDocIds = newAcc.getIn([field, token]);
 
@@ -95,7 +102,7 @@ class ElasticLike {
 
       fieldCountIndex = fieldCountIndex.update(field, 0, value => Math.max(value - 1, 0));
       fieldLengthIndex = fieldLengthIndex.update(field, 0, value => (
-        Math.max(value - tokens.length, 0)
+        Math.max(value - termLength, 0)
       ));
 
       return docIdTokens.delete(docId);
@@ -142,7 +149,11 @@ class ElasticLike {
       const docFieldLength = fieldLengthIndex.get(field, 0);
       const docTerms = getAnalyzer(analyzer)(`${keyword}`);
 
-      return docTerms.reduce((fieldDocScoreAcc, term) => {
+      const terms = docTerms.reduce((acc, term) => (
+        acc.update(term, 0, count => count + 1)
+      ), new Map());
+
+      return terms.reduce((fieldDocScoreAcc, _, term) => {
         const idsTerm = tokenDocIds.get(term, new Set());
         const docFieldFreq = idsTerm.count();
         const avgdl = docFieldLength / docFieldCount;
@@ -150,14 +161,18 @@ class ElasticLike {
 
         const scores = idsTerm
           .filter((docId) => { // operator=and
-            const tokens = docIdTokensIndex.getIn([field, docId], []);
-            return docTerms.every(docTerm => tokens.includes(docTerm));
-          })
-          .reduce((accDoc, docId) => {
-            const tokens = docIdTokensIndex.getIn([field, docId]);
-            const dl = tokens.length;
+            const tokens = docIdTokensIndex.getIn([field, docId, 'terms'], []);
 
-            const freq = tokens.filter(token => token === term).length;
+            return terms.every((count, docTerm) => (
+              tokens.has(docTerm) && count <= tokens.get(docTerm)
+            ));
+          }).reduce((accDoc, docId) => {
+            const tokens = docIdTokensIndex.getIn([field, docId, 'terms'], []);
+            const dl = docIdTokensIndex.getIn([field, docId, 'termsLength'], 0);
+
+            const freq = tokens.filter((__, token) => token === term)
+              .reduce((acc, count) => acc + count, 0);
+
             const score = idf * freq * (K1 + 1) / (freq + K1 * (1 - B + B * dl / avgdl));
 
             return accDoc.set(docId, score);
