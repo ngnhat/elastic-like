@@ -1,18 +1,9 @@
 /**
  * Created by ngnhat on Sat May 25 2019
  */
-const { Map, Set, fromJS } = require('immutable');
-const { standardTokenizer, asciiFoldingTokenizer } = require('tokenizers');
+const { Map, Set } = require('immutable');
 const bm25Scoring = require('./scoring/bm25');
-
-const analyzerMapping = {
-  standard: standardTokenizer,
-  asciifolding: asciiFoldingTokenizer,
-};
-
-const getAnalyzer = (analyzerName = 'standard') => (
-  analyzerMapping[analyzerName] || standardTokenizer
-);
+const { initMapping, getAnalyzer } = require('./src/mapping');
 
 class ElasticLike {
   constructor(config = {}) {
@@ -23,7 +14,7 @@ class ElasticLike {
         Name: { type: 'text', analyzer: 'standard' },
       },
     } = config;
-    const _mapping = fromJS(mapping);
+    const _mapping = initMapping(mapping);
 
     this.docKey = docKey;
     this.mapping = _mapping;
@@ -142,7 +133,7 @@ class ElasticLike {
     } = this;
 
     const docScoreIndex = mapping.reduce((docScoreAcc, fieldMapping, field) => {
-      const analyzer = fieldMapping.get('analyzer', 'standard');
+      const analyzer = fieldMapping.get('search_analyzer', 'standard');
       const docFieldCount = fieldCountIndex.get(field, 0);
       const docFieldLength = fieldLengthIndex.get(field, 0);
       const avgdl = docFieldLength / Math.max(docFieldCount, 1);
