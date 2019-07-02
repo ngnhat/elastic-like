@@ -4,16 +4,11 @@
 const { Map, Set } = require('immutable');
 const bm25Scoring = require('./scoring/bm25');
 const { initMapping, getAnalyzer } = require('./src/mapping');
+const buildClause = require('./src/query');
 
 class ElasticLike {
   constructor(config = {}) {
-    const {
-      docKey = 'Id',
-      mapping = {
-        Code: { type: 'text', analyzer: 'standard' },
-        Name: { type: 'text', analyzer: 'standard' },
-      },
-    } = config;
+    const { docKey = 'id', mapping = {} } = config;
     const _mapping = initMapping(mapping);
 
     this.docKey = docKey;
@@ -116,56 +111,52 @@ class ElasticLike {
     return this.add(document);
   }
 
+  calculate(clause = {}, docIdsMustAppear) {
+    if (clause.match) {
+      return this.calculateClause(clause, docIdsMustAppear);
+    }
+
+    const { must, should } = clause.bool;
+
+    const docScoreIndex = must.reduce((accDocScore, _clause) => {
+      const docScore = this.calculate(_clause);
+
+      return docScore.reduce((accScore, score, docId) => (
+        accScore.update(docId, 0, currentScore => currentScore + score)
+      ), accDocScore || new Map());
+    }, undefined) || new Map();
+
+    const docScoreIndex2 = should.reduce((accDocScore, _clause) => {
+      const docScore = this.calculate(_clause);
+
+      return docScore.reduce((accScore, score, docId) => (
+        accScore.update(docId, 0, currentScore => currentScore + score)
+      ), accDocScore);
+    }, docScoreIndex || new Map());
+
+    return docScoreIndex2;
+  }
+
+  calculateClause(clause = {}, docIdsMustAppear) {
+    const { mapping } = this;
+    const { query, field, boost } = clause.match;
+
+    const analyzer = mapping.getIn([field, 'search_analyzer'], 'standard');
+    const docScore = this.calculateScore(query, field, analyzer, docIdsMustAppear);
+
+    return docScore.map(score => score * boost);
+  }
+
   /**
    * the same as elasticsearch query with the following options:
    * query = multiple_match
    * type = most_fields
    * operator = and
    */
-  search(keyword = '') {
-    const {
-      mapping,
-      documentIndex,
-      fieldCountIndex,
-      fieldLengthIndex,
-      docIdTokensIndex,
-      tokenDocIdsIndex,
-    } = this;
-
-    const docScoreIndex = mapping.reduce((docScoreAcc, fieldMapping, field) => {
-      const analyzer = fieldMapping.get('search_analyzer', 'standard');
-      const docFieldCount = fieldCountIndex.get(field, 0);
-      const docFieldLength = fieldLengthIndex.get(field, 0);
-      const avgdl = docFieldLength / Math.max(docFieldCount, 1);
-      const docTerms = getAnalyzer(analyzer)(`${keyword}`);
-
-      const terms = docTerms.reduce((acc, term) => (
-        acc.update(term, 0, count => count + 1)
-      ), new Map());
-
-      const docIds = Set.intersect(
-        terms
-          .map((count, term) => (
-            tokenDocIdsIndex
-              .getIn([field, term], new Set())
-              .filter(docId => count <= docIdTokensIndex.getIn([field, docId, 'terms', term], 0))
-          ))
-          .toSet(),
-      );
-
-      return docIds.reduce((accScore, docId) => {
-        const score = terms.reduce((sumScore, _, term) => {
-          const dl = docIdTokensIndex.getIn([field, docId, 'termsLength'], 0);
-          const freq = docIdTokensIndex.getIn([field, docId, 'terms', term], 0);
-          const docFieldFreq = tokenDocIdsIndex.getIn([field, term], new Set()).count();
-          const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
-
-          return sumScore + bm25Scoring({ idf, freq, dl, avgdl });
-        }, 0);
-
-        return accScore.update(docId, 0, currentScore => currentScore + score);
-      }, docScoreAcc);
-    }, new Map());
+  search(query = {}) {
+    const { documentIndex } = this;
+    const clause = buildClause(query);
+    const docScoreIndex = this.calculate(clause);
 
     return docScoreIndex
       .sort((a, b) => b - a)
@@ -173,6 +164,40 @@ class ElasticLike {
         ...acc,
         { score, source: documentIndex.get(docId) },
       ]), []);
+  }
+
+  calculateScore(keyWord, fieldName, analyzerName, docIdsMustAppear) {
+    const { fieldCountIndex, fieldLengthIndex, docIdTokensIndex, tokenDocIdsIndex } = this;
+
+    const docFieldCount = fieldCountIndex.get(fieldName, 0);
+    const docFieldLength = fieldLengthIndex.get(fieldName, 0);
+    const avgdl = docFieldLength / Math.max(docFieldCount, 1);
+    const docTerms = getAnalyzer(analyzerName)(`${keyWord}`);
+
+    const terms = docTerms.reduce((acc, term) => (
+      acc.update(term, 0, count => count + 1)
+    ), new Map());
+
+    const docIds = terms.reduce((acc, count, term) => {
+      const tokenDocIds = tokenDocIdsIndex
+        .getIn([fieldName, term], new Set())
+        .filter(docId => count <= docIdTokensIndex.getIn([fieldName, docId, 'terms', term], 0));
+
+      return Set.isSet(acc) ? acc.intersect(tokenDocIds) : tokenDocIds;
+    }, docIdsMustAppear);
+
+    return docIds.reduce((accScore, docId) => {
+      const score = terms.reduce((sumScore, _, term) => {
+        const dl = docIdTokensIndex.getIn([fieldName, docId, 'termsLength'], 0);
+        const freq = docIdTokensIndex.getIn([fieldName, docId, 'terms', term], 0);
+        const docFieldFreq = tokenDocIdsIndex.getIn([fieldName, term], new Set()).count();
+        const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
+
+        return sumScore + bm25Scoring({ idf, freq, dl, avgdl });
+      }, 0);
+
+      return accScore.set(docId, score);
+    }, new Map());
   }
 }
 

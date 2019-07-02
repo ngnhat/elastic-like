@@ -5,26 +5,65 @@ const Store = require('../../index');
 
 describe('single field:', () => {
   it('single doc - single term', () => {
-    const store = new Store();
+    const store = new Store({
+      docKey: 'Id',
+      mapping: {
+        Code: { type: 'text', analyzer: 'standard' },
+        Name: { type: 'text', analyzer: 'standard' },
+      },
+    });
     store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
-    expect(store.search('fox')).toMatchSnapshot();
+    expect(store.search({
+      bool: {
+        should: [
+          { match: { query: 'fox', field: 'Code' } },
+          { match: { query: 'fox', field: 'Name' } },
+        ],
+      },
+    })).toMatchSnapshot();
   });
 
   it('single doc - multiple term', () => {
-    const store = new Store();
+    const store = new Store({
+      docKey: 'Id',
+      mapping: {
+        Code: { type: 'text', analyzer: 'standard' },
+        Name: { type: 'text', analyzer: 'standard' },
+      },
+    });
     store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
-    expect(store.search('quick fox')).toMatchSnapshot();
+    expect(store.search({
+      bool: {
+        should: [
+          { match: { query: 'quick fox', field: 'Code' } },
+          { match: { query: 'quick fox', field: 'Name' } },
+        ],
+      },
+    })).toMatchSnapshot();
   });
 
   it('multiple doc - single term', () => {
-    const store = new Store();
+    const store = new Store({
+      docKey: 'Id',
+      mapping: {
+        Code: { type: 'text', analyzer: 'standard' },
+        Name: { type: 'text', analyzer: 'standard' },
+      },
+    });
     store.add({ Id: 1, Code: '1', Name: 'The quick brown fox' });
     store.add({ Id: 2, Code: '2', Name: 'The quick brown fox jumps over the lazy dog' });
     store.add({ Id: 3, Code: '3', Name: 'The quick brown fox jumps hahaha over the quick dog' });
     store.add({ Id: 4, Code: '4', Name: 'Brown fox hahaha brown dog' });
 
-    expect(store.search('hahaha')).toMatchSnapshot();
+    expect(store.search({
+      bool: {
+        should: [
+          { match: { query: 'hahaha', field: 'Code' } },
+          { match: { query: 'hahaha', field: 'Name' } },
+        ],
+      },
+    })).toMatchSnapshot();
   });
 });
