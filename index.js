@@ -14,16 +14,16 @@ class ElasticLike {
     this.docKey = docKey;
     this.mapping = _mapping;
 
-    this.fieldCountIndex = new Map();
-    this.fieldLengthIndex = new Map();
+    this.fieldCountIndex = Map();
+    this.fieldLengthIndex = Map();
 
-    this.documentIndex = new Map();
+    this.documentIndex = Map();
     this.docIdTokensIndex = _mapping.reduce((acc, _, field) => (
-      acc.set(field, new Map())
-    ), new Map());
+      acc.set(field, Map())
+    ), Map());
     this.tokenDocIdsIndex = _mapping.reduce((acc, _, field) => (
-      acc.set(field, new Map())
-    ), new Map());
+      acc.set(field, Map())
+    ), Map());
   }
 
   add(document = {}) {
@@ -43,7 +43,7 @@ class ElasticLike {
 
       const docTerms = _docTerms.reduce((acc, term) => (
         acc.update(term, 0, count => count + 1)
-      ), new Map());
+      ), Map());
 
       docIdTokensIndex = docIdTokensIndex
         .setIn([field, docId, 'terms'], docTerms)
@@ -54,7 +54,7 @@ class ElasticLike {
       ));
 
       return docTerms.reduce((acc, _, term) => (
-        acc.update(term, new Set(), listIds => listIds.add(docId))
+        acc.update(term, Set(), listIds => listIds.add(docId))
       ), tokenDocIds);
     });
 
@@ -111,52 +111,17 @@ class ElasticLike {
     return this.add(document);
   }
 
-  calculate(clause = {}, docIdsMustAppear) {
-    if (clause.match) {
-      return this.calculateClause(clause, docIdsMustAppear);
-    }
-
-    const { must, should } = clause.bool;
-
-    const docScoreIndex = must.reduce((accDocScore, _clause) => {
-      const docScore = this.calculate(_clause);
-
-      return docScore.reduce((accScore, score, docId) => (
-        accScore.update(docId, 0, currentScore => currentScore + score)
-      ), accDocScore || new Map());
-    }, undefined) || new Map();
-
-    const docScoreIndex2 = should.reduce((accDocScore, _clause) => {
-      const docScore = this.calculate(_clause);
-
-      return docScore.reduce((accScore, score, docId) => (
-        accScore.update(docId, 0, currentScore => currentScore + score)
-      ), accDocScore);
-    }, docScoreIndex || new Map());
-
-    return docScoreIndex2;
-  }
-
-  calculateClause(clause = {}, docIdsMustAppear) {
-    const { mapping } = this;
-    const { query, field, boost } = clause.match;
-
-    const analyzer = mapping.getIn([field, 'search_analyzer'], 'standard');
-    const docScore = this.calculateScore(query, field, analyzer, docIdsMustAppear);
-
-    return docScore.map(score => score * boost);
-  }
-
   /**
    * the same as elasticsearch query with the following options:
    * query = multiple_match
    * type = most_fields
    * operator = and
    */
-  search(query = {}) {
+  search(_clause = {}) {
     const { documentIndex } = this;
-    const clause = buildClause(query);
-    const docScoreIndex = this.calculate(clause);
+    const clause = buildClause(_clause);
+    const docIds = this.calcIds(clause);
+    const docScoreIndex = this.calculate(clause, docIds);
 
     return docScoreIndex
       .sort((a, b) => b - a)
@@ -166,38 +131,107 @@ class ElasticLike {
       ]), []);
   }
 
-  calculateScore(keyWord, fieldName, analyzerName, docIdsMustAppear) {
-    const { fieldCountIndex, fieldLengthIndex, docIdTokensIndex, tokenDocIdsIndex } = this;
+  calcIds(clause = {}, docIdsMustAppear) {
+    const { match, bool } = clause;
 
-    const docFieldCount = fieldCountIndex.get(fieldName, 0);
-    const docFieldLength = fieldLengthIndex.get(fieldName, 0);
-    const avgdl = docFieldLength / Math.max(docFieldCount, 1);
-    const docTerms = getAnalyzer(analyzerName)(`${keyWord}`);
+    if (match) {
+      return this.calcIdsByMatchClause(match, docIdsMustAppear);
+    }
+
+    const { must, should } = bool;
+
+    const mustIds = must.reduce((accIds, _clause) => (
+      this.calcIds(_clause, accIds)
+    ), docIdsMustAppear);
+
+    if (mustIds) {
+      return mustIds;
+    }
+
+    return should.reduce((accIds, _clause) => (
+      accIds.concat(this.calcIds(_clause, docIdsMustAppear))
+    ), Set());
+  }
+
+  calcIdsByMatchClause(matchClause = {}, docIdsMustAppear) {
+    const { query, field } = matchClause;
+    const { mapping, docIdTokensIndex, tokenDocIdsIndex } = this;
+    const analyzer = mapping.getIn([field, 'search_analyzer'], 'standard');
+    const docTerms = getAnalyzer(analyzer)(`${query}`);
 
     const terms = docTerms.reduce((acc, term) => (
       acc.update(term, 0, count => count + 1)
-    ), new Map());
+    ), Map());
+
+    return terms.reduce((acc, count, term) => {
+      const ids = tokenDocIdsIndex
+        .getIn([field, term], Set())
+        .filter(docId => count <= docIdTokensIndex.getIn([field, docId, 'terms', term], 0));
+
+      return Set.isSet(acc) ? acc.intersect(ids) : ids;
+    }, docIdsMustAppear);
+  }
+
+  calculate(clause = {}, docIdsMustAppear) {
+    if (clause.match) {
+      return this.calculateScore(clause.match, docIdsMustAppear);
+    }
+
+    const { must, should } = clause.bool;
+
+    const docScoreIndex = must.reduce((accDocScore, _clause) => {
+      const docScore = this.calculate(_clause, docIdsMustAppear);
+
+      return docScore.reduce((accScore, score, docId) => (
+        accScore.update(docId, 0, currentScore => currentScore + score)
+      ), accDocScore || Map());
+    }, undefined);
+
+    const docScoreIndex2 = should.reduce((accDocScore, _clause) => {
+      const docScore = this.calculate(_clause, docIdsMustAppear);
+
+      return docScore.reduce((accScore, score, docId) => (
+        accScore.update(docId, 0, currentScore => currentScore + score)
+      ), accDocScore);
+    }, docScoreIndex || Map());
+
+    return docScoreIndex2;
+  }
+
+  calculateScore(matchClause = {}, docIdsMustAppear) {
+    const { query, field, boost } = matchClause;
+    const { mapping, fieldCountIndex, fieldLengthIndex, docIdTokensIndex, tokenDocIdsIndex } = this;
+    const analyzer = mapping.getIn([field, 'search_analyzer'], 'standard');
+
+    const docFieldCount = fieldCountIndex.get(field, 0);
+    const docFieldLength = fieldLengthIndex.get(field, 0);
+    const avgdl = docFieldLength / Math.max(docFieldCount, 1);
+    const docTerms = getAnalyzer(analyzer)(`${query}`);
+
+    const terms = docTerms.reduce((acc, term) => (
+      acc.update(term, 0, count => count + 1)
+    ), Map());
 
     const docIds = terms.reduce((acc, count, term) => {
-      const tokenDocIds = tokenDocIdsIndex
-        .getIn([fieldName, term], new Set())
-        .filter(docId => count <= docIdTokensIndex.getIn([fieldName, docId, 'terms', term], 0));
+      const ids = tokenDocIdsIndex
+        .getIn([field, term], Set())
+        .filter(docId => count <= docIdTokensIndex.getIn([field, docId, 'terms', term], 0));
 
-      return Set.isSet(acc) ? acc.intersect(tokenDocIds) : tokenDocIds;
+      return Set.isSet(acc) ? acc.intersect(ids) : ids;
     }, docIdsMustAppear);
 
     return docIds.reduce((accScore, docId) => {
       const score = terms.reduce((sumScore, _, term) => {
-        const dl = docIdTokensIndex.getIn([fieldName, docId, 'termsLength'], 0);
-        const freq = docIdTokensIndex.getIn([fieldName, docId, 'terms', term], 0);
-        const docFieldFreq = tokenDocIdsIndex.getIn([fieldName, term], new Set()).count();
+        const dl = docIdTokensIndex.getIn([field, docId, 'termsLength'], 0);
+        const freq = docIdTokensIndex.getIn([field, docId, 'terms', term], 0);
+        const docFieldFreq = tokenDocIdsIndex.getIn([field, term], Set()).count();
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
         return sumScore + bm25Scoring({ idf, freq, dl, avgdl });
       }, 0);
 
-      return accScore.set(docId, score);
-    }, new Map());
+      return accScore.set(docId, score * boost);
+    }, Map());
   }
 }
 
