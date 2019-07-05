@@ -210,7 +210,7 @@ class ElasticLike {
       return docScore.reduce((accScore, score, docId) => (
         accScore.update(docId, 0, currentScore => currentScore + score)
       ), accDocScore || Map());
-    }, undefined);
+    }, null);
 
     const docScoreIndex2 = should.reduce((accDocScore, _clause) => {
       const docScore = this.calculate(_clause, docIdsMustAppear);

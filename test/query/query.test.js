@@ -1,4 +1,4 @@
-const buildQuery = require('./query');
+const buildQuery = require('../../src/query');
 
 describe('query:', () => {
   it('empty', () => {
