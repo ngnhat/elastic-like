@@ -21,21 +21,21 @@ class ElasticLike {
     this.tokenDocIdsIndex = Map();
   }
 
-  insertDataFieldToStore({ fieldName, analyzerName, value, docId }) {
+  addDataField({ fieldName, analyzerName, value, docId }) {
     const terms = analysis(analyzerName, value);
     const termsLength = terms.length;
     const docTerms = terms.reduce((acc, term) => acc.update(term, 0, count => count + 1), Map());
 
     this.docIdTokensIndex = this.docIdTokensIndex
-      .setIn([fieldName, docId, 'terms'], docTerms)
-      .setIn([fieldName, docId, 'termsLength'], termsLength);
+      .updateIn([fieldName, docId, 'terms'], Map(), tokens => (
+        tokens.mergeWith((oldValue, newValue) => oldValue + newValue, docTerms)
+      ))
+      .updateIn([fieldName, docId, 'termsLength'], 0, oldLength => oldLength + termsLength);
 
-    this.fieldLengthIndex = this.fieldLengthIndex.update(fieldName, 0, length => (
-      length + termsLength
-    ));
-    this.fieldCountIndex = this.fieldCountIndex.update(fieldName, 0, count => (
-      count + (termsLength ? 1 : 0)
-    ));
+    this.fieldLengthIndex = this.fieldLengthIndex
+      .update(fieldName, 0, length => length + termsLength);
+    this.fieldCountIndex = this.fieldCountIndex
+      .update(fieldName, 0, count => count + (termsLength ? 1 : 0));
 
     this.tokenDocIdsIndex = this.tokenDocIdsIndex.update(fieldName, Map(), tokenDocIds => (
       docTerms.reduce((acc, _, term) => (
@@ -53,15 +53,15 @@ class ElasticLike {
         const list = List([].concat(document[field]));
         const fieldName = propertiesOriginal ? `${propertiesOriginal}.${field}` : field;
 
-        list.forEach((el) => {
+        list.forEach((element) => {
           const fields = fieldMapping.get('properties', Map());
-          this.recursionAdding(docId, fields, el, undefined, fieldName);
+          this.recursionAdding(docId, fields, element, undefined, fieldName);
         });
       } else {
         const analyzerName = fieldMapping.get('analyzer', 'standard');
         const fieldName = (fieldsOriginal || propertiesOriginal) ? `${(fieldsOriginal || propertiesOriginal)}.${field}` : field;
 
-        this.insertDataFieldToStore({ docId, value, fieldName, analyzerName });
+        this.addDataField({ docId, value, fieldName, analyzerName });
 
         const fields = fieldMapping.get('fields', Map());
 
