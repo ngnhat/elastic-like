@@ -2,7 +2,7 @@
  * Created by ngnhat on Sat May 25 2019
  */
 const { List, Map, Set } = require('immutable');
-const bm25Scoring = require('./scoring/bm25');
+const bm25Ranking = require('./ranking/bm25');
 const { initMapping, analysis } = require('./src/mapping');
 const buildClause = require('./src/query');
 
@@ -15,13 +15,7 @@ class TermFrequency {
   }
 
   add(id, field, terms) {
-    const termsLength = terms.reduce((length, count) => {
-      if (Map.isMap(count)) {
-        return length + count.get('count');
-      }
-
-      return length + count;
-    }, 0);
+    const termsLength = terms.reduce((length, count) => length + count, 0);
 
     this.docIdTermsIndex = this.docIdTermsIndex
       .setIn([field, id, 'terms'], terms)
@@ -37,6 +31,32 @@ class TermFrequency {
         acc.update(term, Set(), listIds => listIds.add(id))
       ), tokenDocIds)
     ));
+  }
+
+  nestedAdd(id, field, listNestedTerms) {
+    listNestedTerms.forEach((nestedTerm, index) => {
+      const termsLength = nestedTerm.reduce((length, count) => length + count, 0);
+
+      this.docIdTermsIndex = this.docIdTermsIndex
+        .updateIn([field, id, 'terms'], Map(), tokens => (
+          nestedTerm.reduce((acc, count, token) => (
+            acc.updateIn([token, 'count'], 0, totalCount => totalCount + count)
+              .updateIn([token, 'indexs'], Set(), indexs => indexs.add(index))
+          ), tokens)
+        ))
+        .updateIn([field, id, 'termsLength'], 0, oldLength => oldLength + termsLength);
+
+      this.fieldLengthIndex = this.fieldLengthIndex
+        .update(field, 0, length => length + termsLength);
+      this.fieldCountIndex = this.fieldCountIndex
+        .update(field, 0, count => count + (termsLength ? 1 : 0));
+
+      this.termDocIdsIndex = this.termDocIdsIndex.update(field, Map(), tokenDocIds => (
+        nestedTerm.reduce((acc, _, _term) => (
+          acc.update(_term, Set(), listIds => listIds.add(id))
+        ), tokenDocIds)
+      ));
+    });
   }
 
   delete(id) {
@@ -108,6 +128,10 @@ class TermFrequency {
     return this.docIdTermsIndex.getIn([field, id, 'termsLength'], 0);
   }
 
+  getNestedDl(id, field) {
+    return this.docIdTermsIndex.getIn([field, id, 'termsLength'], 0) / this.docIdTermsIndex.getIn([field, id, 'terms'], Map()).count();
+  }
+
   getFreq(id, field, term) {
     return this.docIdTermsIndex.getIn([field, id, 'terms', term], 0);
   }
@@ -132,18 +156,15 @@ const fieldTermCalc = (mapping, document, originalField) => (
       const type = fieldMapping.get('type');
 
       if (type === 'nested') {
-        return childrenDocuments.reduce((newFieldAcc, childrenDocument, index) => (
-          fieldTermCalc(propertiesMapping, childrenDocument)
-            .mapKeys(childrenField => `${field}.${childrenField}`)
-            .reduce((fieldAcc, termCount, childrenField) => (
-              fieldAcc.update(childrenField, Map(), currentValue => (
-                termCount.reduce((termAcc, count, term) => (
-                  termAcc.updateIn([term, 'count'], 0, oldCount => oldCount + count)
-                    .updateIn([term, 'indexs'], Set(), oldIndexs => oldIndexs.add(index))
-                ), currentValue)
-              ))
-            ), newFieldAcc)
-        ), docTermsAcc);
+        return childrenDocuments.reduce((newFieldAcc, childrenDocument) => {
+          const nestedTerm = fieldTermCalc(propertiesMapping, childrenDocument);
+
+          return propertiesMapping.reduce((acc, _, childrenField) => (
+            acc.update(`${field}.${childrenField}`, List(), list => (
+              list.push(nestedTerm.get(childrenField, Map()))
+            ))
+          ), newFieldAcc);
+        }, docTermsAcc);
       }
 
       return childrenDocuments.reduce((newFieldAcc, childrenDocument) => (
@@ -226,10 +247,13 @@ class ElasticLike {
 
       this.documentIndex = documentIndex.set(docId, document);
 
-      fieldTermCalc(mapping, document)
-        .forEach((terms, field) => {
-          this.tfidf.add(docId, field, terms);
-        });
+      fieldTermCalc(mapping, document).forEach((termsIndex, field) => {
+        if (List.isList(termsIndex)) {
+          this.tfidf.nestedAdd(docId, field, termsIndex);
+        } else {
+          this.tfidf.add(docId, field, termsIndex);
+        }
+      });
 
       return true;
     } catch (err) {
@@ -435,7 +459,7 @@ class ElasticLike {
       return Set.isSet(acc) ? acc.intersect(ids) : ids;
     }, docIdsMustAppear);
 
-    return docIds.reduce((accScore, docId) => {
+    return docIds.reduce((docsWithScore, docId) => {
       const dl = this.tfidf.getDl(docId, field);
 
       const score = terms.reduce((sumScore, _, term) => {
@@ -443,10 +467,10 @@ class ElasticLike {
         const docFieldFreq = this.tfidf.getFieldFreq(field, term);
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
-        return sumScore + bm25Scoring({ idf, freq, dl, avgdl });
+        return sumScore + bm25Ranking({ idf, freq, dl, avgdl });
       }, 0);
 
-      return accScore.set(docId, score * boost);
+      return docsWithScore.set(docId, score * boost);
     }, Map());
   }
 
@@ -477,18 +501,18 @@ class ElasticLike {
     const _docIds = nestedDocIds.reduce((acc, _, docId) => acc.add(docId), Set());
     const docIds = docIdsMustAppear ? docIdsMustAppear.intersect(_docIds) : _docIds;
 
-    return docIds.reduce((accScore, docId) => {
-      const dl = this.tfidf.getDl(docId, field);
+    return docIds.reduce((docsWithScore, docId) => {
+      const dl = this.tfidf.getNestedDl(docId, field);
 
       const score = terms.reduce((sumScore, _, term) => {
         const freq = this.tfidf.getNestedFreq(docId, field, term);
         const docFieldFreq = this.tfidf.getFieldFreq(field, term);
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
-        return sumScore + bm25Scoring({ idf, freq, dl, avgdl });
+        return sumScore + bm25Ranking({ idf, freq, dl, avgdl });
       }, 0);
 
-      return accScore.set(docId, score * boost);
+      return docsWithScore.set(docId, score * boost);
     }, Map());
   }
 }

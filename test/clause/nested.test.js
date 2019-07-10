@@ -17,7 +17,7 @@ describe('not nested testing', () => {
       },
     });
 
-    store.add(1, {
+    store.add('doc001', {
       id: 1,
       group: 'fans',
       user: [
@@ -61,7 +61,7 @@ describe('nested testing', () => {
     },
   });
 
-  store.add(1, {
+  store.add('doc001', {
     id: 1,
     group: 'fans',
     user: [
