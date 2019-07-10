@@ -3,10 +3,9 @@
  */
 const Store = require('../../index');
 
-describe('nested testing', () => {
+describe('not nested testing', () => {
   it('not nested', () => {
     const store = new Store({
-      docKey: 'id',
       mapping: {
         group: { type: 'text' },
         user: {
@@ -46,31 +45,32 @@ describe('nested testing', () => {
       },
     }]);
   });
+});
 
-  it('nested', () => {
-    const store = new Store({
-      docKey: 'id',
-      mapping: {
-        group: { type: 'text' },
-        user: {
-          type: 'nested',
-          properties: {
-            last: { type: 'text' },
-            first: { type: 'text' },
-          },
+describe('nested testing', () => {
+  const store = new Store({
+    mapping: {
+      group: { type: 'text' },
+      user: {
+        type: 'nested',
+        properties: {
+          last: { type: 'text' },
+          first: { type: 'text' },
         },
       },
-    });
+    },
+  });
 
-    store.add(1, {
-      id: 1,
-      group: 'fans',
-      user: [
-        { first: 'John', last: 'Smith' },
-        { first: 'Alice', last: 'White' },
-      ],
-    });
+  store.add(1, {
+    id: 1,
+    group: 'fans',
+    user: [
+      { first: 'John', last: 'Smith' },
+      { first: 'Alice', last: 'White' },
+    ],
+  });
 
+  it('nested without results', () => {
     expect(store.search({
       nested: {
         path: 'user',
@@ -84,5 +84,31 @@ describe('nested testing', () => {
         },
       },
     })).toEqual([]);
+  });
+
+  it('nested with results', () => {
+    expect(store.search({
+      nested: {
+        path: 'user',
+        query: {
+          bool: {
+            must: [
+              { match: { field: 'user.last', query: 'White' } },
+              { match: { field: 'user.first', query: 'Alice' } },
+            ],
+          },
+        },
+      },
+    })).toEqual([{
+      score: 1.3862943611198906,
+      source: {
+        id: 1,
+        group: 'fans',
+        user: [
+          { first: 'John', last: 'Smith' },
+          { first: 'Alice', last: 'White' },
+        ],
+      },
+    }]);
   });
 });

@@ -4,7 +4,6 @@
 const Store = require('../../index');
 
 const store = new Store({
-  docKey: 'id',
   mapping: {
     tweet: {
       properties: {

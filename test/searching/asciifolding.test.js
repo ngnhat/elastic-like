@@ -6,7 +6,6 @@ const Store = require('../../index');
 describe('vietnamese:', () => {
   it('buổi trưa ăn bưởi chua: standard', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
@@ -44,7 +43,6 @@ describe('vietnamese:', () => {
 
   it('buổi trưa ăn bưởi chua: asciifolding', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'asciifolding' },

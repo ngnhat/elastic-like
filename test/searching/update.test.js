@@ -6,7 +6,6 @@ const Store = require('../../index');
 describe('update a document:', () => {
   it('non exists', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
@@ -26,7 +25,6 @@ describe('update a document:', () => {
 
   it('exists', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },

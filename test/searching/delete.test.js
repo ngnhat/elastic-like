@@ -6,7 +6,6 @@ const Store = require('../../index');
 describe('delete a document:', () => {
   it('single doc - single term', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
@@ -28,14 +27,12 @@ describe('delete a document:', () => {
 
   it('multiple doc - single term', () => {
     const store1 = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
     const store2 = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },

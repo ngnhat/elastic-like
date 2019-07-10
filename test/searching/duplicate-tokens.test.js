@@ -4,7 +4,6 @@
 const Store = require('../../index');
 
 const store = new Store({
-  docKey: 'Id',
   mapping: {
     Code: { type: 'text', analyzer: 'standard' },
     Name: { type: 'text', analyzer: 'standard' },

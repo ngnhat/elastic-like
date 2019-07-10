@@ -6,7 +6,6 @@ const Store = require('../../index');
 describe('multiple fields', () => {
   it('multiple documents', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
@@ -46,7 +45,6 @@ describe('multiple fields', () => {
 
   it('multiple documents - multiple terms', () => {
     const store = new Store({
-      docKey: 'Id',
       mapping: {
         Code: { type: 'text', analyzer: 'standard' },
         Name: { type: 'text', analyzer: 'standard' },
