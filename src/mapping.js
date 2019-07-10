@@ -33,9 +33,11 @@ const analyzerMapping = {
   asciifolding: asciiFoldingTokenizer,
 };
 
-const analysis = (analyzerName = 'standard', string = '') => {
+const analysis = (string = '', analyzerName = 'standard') => {
   const analyzer = analyzerMapping[analyzerName] || standardTokenizer;
-  return analyzer(`${string}`);
+  const terms = analyzer(`${string}`);
+
+  return terms.reduce((acc, term) => acc.update(term, 0, count => count + 1), Map());
 };
 
 module.exports = {

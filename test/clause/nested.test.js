@@ -3,7 +3,7 @@
  */
 const Store = require('../../index');
 
-describe('not nested', () => {
+describe('nested testing', () => {
   it('not nested', () => {
     const store = new Store({
       docKey: 'id',
@@ -18,7 +18,7 @@ describe('not nested', () => {
       },
     });
 
-    store.add({
+    store.add(1, {
       id: 1,
       group: 'fans',
       user: [
@@ -35,7 +35,7 @@ describe('not nested', () => {
         ],
       },
     })).toEqual([{
-      score: 0.5753642,
+      score: 0.5753641449035617,
       source: {
         id: 1,
         group: 'fans',
@@ -46,9 +46,7 @@ describe('not nested', () => {
       },
     }]);
   });
-});
 
-describe('nested', () => {
   it('nested', () => {
     const store = new Store({
       docKey: 'id',
@@ -64,7 +62,7 @@ describe('nested', () => {
       },
     });
 
-    store.add({
+    store.add(1, {
       id: 1,
       group: 'fans',
       user: [

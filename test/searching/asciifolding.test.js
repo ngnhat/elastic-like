@@ -12,7 +12,7 @@ describe('vietnamese:', () => {
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
-    store.add({ Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
+    store.add(1, { Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
 
     expect(store.search({
       bool: {
@@ -50,7 +50,7 @@ describe('vietnamese:', () => {
         Name: { type: 'text', analyzer: 'asciifolding' },
       },
     });
-    store.add({ Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
+    store.add(1, { Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
 
     expect(store.search({
       bool: {

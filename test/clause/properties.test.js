@@ -20,7 +20,7 @@ const store = new Store({
   },
 });
 
-store.add({
+store.add(1, {
   id: 1,
   tweet: {
     message: 'some arrays in this tweet',
@@ -31,7 +31,7 @@ store.add({
   },
 });
 
-store.add({
+store.add(2, {
   id: 2,
   tweet: {
     message: 'wow, cool tweet!',
@@ -42,7 +42,7 @@ store.add({
   },
 });
 
-store.add({
+store.add(3, {
   id: 3,
   tweet: {
     message: 'aw, suck tweet!',
@@ -85,7 +85,7 @@ describe('properties', () => {
         field: 'tweet.lists.description',
       },
     })).toEqual([{
-      score: 1.1608024647285917,
+      score: 1.0596458894144547,
       source: {
         id: 2,
         tweet: {
@@ -108,10 +108,11 @@ describe('properties', () => {
         ],
       },
     })).toEqual([{
-      score: 2.477615703537837,
+      score: 2.370736812475978,
       source: {
         id: 3,
         tweet: {
+          message: 'aw, suck tweet!',
           lists: [{
             name: 'suck_list',
             description: 'suck stuff list',
@@ -119,7 +120,6 @@ describe('properties', () => {
             name: 'not_nested',
             description: 'not nested list',
           }],
-          message: 'aw, suck tweet!',
         },
       },
     }]);

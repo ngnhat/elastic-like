@@ -19,8 +19,16 @@ const buildMatchQuery = (match = {}) => {
 const queryFormatting = (query = {}) => {
   if (
     !(query instanceof Object)
-    || (query.bool instanceof Object && query.match instanceof Object)
-    || (!(query.bool instanceof Object) && !(query.match instanceof Object))
+    || (
+      !(query.bool instanceof Object)
+      && !(query.match instanceof Object)
+      && !(query.nested instanceof Object)
+    )
+    || [
+      query.bool instanceof Object,
+      query.match instanceof Object,
+      query.nested instanceof Object,
+    ].filter(boolean => boolean).length > 1
   ) {
     throw new Error('parsing exception');
   }
@@ -28,6 +36,15 @@ const queryFormatting = (query = {}) => {
   if (query.match instanceof Object) {
     return {
       match: buildMatchQuery(query.match),
+    };
+  }
+
+  if (query.nested instanceof Object) {
+    return {
+      nested: {
+        path: query.nested.path,
+        query: queryFormatting(query.nested.query),
+      },
     };
   }
 

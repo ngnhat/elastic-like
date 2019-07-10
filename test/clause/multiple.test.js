@@ -23,8 +23,8 @@ const store = new Store({
   },
 });
 
-store.add({ id: 1, code: 'code 001', name: 'buổi trưa ăn bưởi chua' });
-store.add({ id: 2, code: 'code 002', name: 'nồi đồng nấu ốc nồi đất nấu ếch' });
+store.add(1, { id: 1, code: 'code 001', name: 'buổi trưa ăn bưởi chua' });
+store.add(2, { id: 2, code: 'code 002', name: 'nồi đồng nấu ốc nồi đất nấu ếch' });
 
 describe('multiple-mapping', () => {
   it('default', () => {

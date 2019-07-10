@@ -8,8 +8,8 @@ const store = new Store({
   },
 });
 
-store.add({ id: 1, code: 'code 001', name: 'aaa bbb ccc' });
-store.add({ id: 2, code: 'code 002', name: 'ddd eee fff' });
+store.add(1, { id: 1, code: 'code 001', name: 'aaa bbb ccc' });
+store.add(2, { id: 2, code: 'code 002', name: 'ddd eee fff' });
 
 describe('clauses', () => {
   it('simple match clause', () => {

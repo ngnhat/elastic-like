@@ -13,10 +13,10 @@ describe('multiple fields', () => {
       },
     });
 
-    store.add({ Id: 1, Code: 'aaa', Name: 'aaa bbb ccc' });
-    store.add({ Id: 2, Code: 'bbb', Name: 'bbb ccc ddd' });
-    store.add({ Id: 3, Code: 'ccc', Name: 'ccc ddd eee' });
-    store.add({ Id: 4, Code: 'ddd', Name: 'ddd eee fff' });
+    store.add(1, { Id: 1, Code: 'aaa', Name: 'aaa bbb ccc' });
+    store.add(2, { Id: 2, Code: 'bbb', Name: 'bbb ccc ddd' });
+    store.add(3, { Id: 3, Code: 'ccc', Name: 'ccc ddd eee' });
+    store.add(4, { Id: 4, Code: 'ddd', Name: 'ddd eee fff' });
 
     expect(store.search({
       bool: {
@@ -53,10 +53,10 @@ describe('multiple fields', () => {
       },
     });
 
-    store.add({ Id: 1, Code: 'aaa', Name: 'aaa bbb ccc' });
-    store.add({ Id: 2, Code: 'bbb', Name: 'bbb ccc ddd' });
-    store.add({ Id: 3, Code: 'ccc', Name: 'ccc ddd eee' });
-    store.add({ Id: 4, Code: 'ddd', Name: 'ddd eee fff' });
+    store.add(1, { Id: 1, Code: 'aaa', Name: 'aaa bbb ccc' });
+    store.add(2, { Id: 2, Code: 'bbb', Name: 'bbb ccc ddd' });
+    store.add(3, { Id: 3, Code: 'ccc', Name: 'ccc ddd eee' });
+    store.add(4, { Id: 4, Code: 'ddd', Name: 'ddd eee fff' });
 
     expect(store.search({
       bool: {

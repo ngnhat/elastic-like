@@ -159,6 +159,42 @@ describe('mapping', () => {
     });
   });
 
+  it('properties mapping', () => {
+    const mapping = initMapping({
+      group: { type: 'text' },
+      user: {
+        type: 'nested',
+        properties: {
+          last: { type: 'text' },
+          first: { type: 'text' },
+        },
+      },
+    }).toJS();
+
+    expect(mapping).toEqual({
+      group: {
+        type: 'text',
+        analyzer: 'standard',
+        search_analyzer: 'standard',
+      },
+      user: {
+        type: 'nested',
+        properties: {
+          last: {
+            type: 'text',
+            analyzer: 'standard',
+            search_analyzer: 'standard',
+          },
+          first: {
+            type: 'text',
+            analyzer: 'standard',
+            search_analyzer: 'standard',
+          },
+        },
+      },
+    });
+  });
+
   it('invalid mapping', () => {
     try {
       initMapping({

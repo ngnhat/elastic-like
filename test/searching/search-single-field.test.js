@@ -12,7 +12,7 @@ describe('single field:', () => {
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
-    store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
+    store.add(1, { Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
     expect(store.search({
       bool: {
@@ -32,7 +32,7 @@ describe('single field:', () => {
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
-    store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
+    store.add(1, { Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
     expect(store.search({
       bool: {
@@ -52,10 +52,10 @@ describe('single field:', () => {
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
-    store.add({ Id: 1, Code: '1', Name: 'The quick brown fox' });
-    store.add({ Id: 2, Code: '2', Name: 'The quick brown fox jumps over the lazy dog' });
-    store.add({ Id: 3, Code: '3', Name: 'The quick brown fox jumps hahaha over the quick dog' });
-    store.add({ Id: 4, Code: '4', Name: 'Brown fox hahaha brown dog' });
+    store.add(1, { Id: 1, Code: '1', Name: 'The quick brown fox' });
+    store.add(2, { Id: 2, Code: '2', Name: 'The quick brown fox jumps over the lazy dog' });
+    store.add(3, { Id: 3, Code: '3', Name: 'The quick brown fox jumps hahaha over the quick dog' });
+    store.add(4, { Id: 4, Code: '4', Name: 'Brown fox hahaha brown dog' });
 
     expect(store.search({
       bool: {

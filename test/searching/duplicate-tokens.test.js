@@ -11,7 +11,7 @@ const store = new Store({
   },
 });
 
-store.add({ Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
+store.add(1, { Id: 1, Code: 'code001', Name: 'buổi trưa ăn bưởi chua' });
 
 describe('duplicates', () => {
   it('chua chua', () => {

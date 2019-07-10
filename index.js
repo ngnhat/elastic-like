@@ -6,100 +6,46 @@ const bm25Scoring = require('./scoring/bm25');
 const { initMapping, analysis } = require('./src/mapping');
 const buildClause = require('./src/query');
 
-class ElasticLike {
-  constructor(config = {}) {
-    const { docKey = 'id', mapping = {} } = config;
-    const _mapping = initMapping(mapping);
-
-    this.docKey = docKey;
-    this.mapping = _mapping;
-
-    this.documentIndex = Map();
+class TermFrequency {
+  constructor() {
     this.fieldCountIndex = Map();
     this.fieldLengthIndex = Map();
     this.docIdTokensIndex = Map();
     this.tokenDocIdsIndex = Map();
   }
 
-  addDataField({ fieldName, analyzerName, value, docId }) {
-    const terms = analysis(analyzerName, value);
-    const termsLength = terms.length;
-    const docTerms = terms.reduce((acc, term) => acc.update(term, 0, count => count + 1), Map());
+  add(id, field, terms) {
+    const termsLength = terms.reduce((length, count) => length + count, 0);
 
     this.docIdTokensIndex = this.docIdTokensIndex
-      .updateIn([fieldName, docId, 'terms'], Map(), tokens => (
-        tokens.mergeWith((oldValue, newValue) => oldValue + newValue, docTerms)
+      .updateIn([field, id, 'terms'], Map(), tokens => (
+        tokens.mergeWith((oldValue, newValue) => oldValue + newValue, terms)
       ))
-      .updateIn([fieldName, docId, 'termsLength'], 0, oldLength => oldLength + termsLength);
+      .updateIn([field, id, 'termsLength'], 0, oldLength => oldLength + termsLength);
 
     this.fieldLengthIndex = this.fieldLengthIndex
-      .update(fieldName, 0, length => length + termsLength);
+      .update(field, 0, length => length + termsLength);
     this.fieldCountIndex = this.fieldCountIndex
-      .update(fieldName, 0, count => count + (termsLength ? 1 : 0));
+      .update(field, 0, count => count + (termsLength ? 1 : 0));
 
-    this.tokenDocIdsIndex = this.tokenDocIdsIndex.update(fieldName, Map(), tokenDocIds => (
-      docTerms.reduce((acc, _, term) => (
-        acc.update(term, Set(), listIds => listIds.add(docId))
+    this.tokenDocIdsIndex = this.tokenDocIdsIndex.update(field, Map(), tokenDocIds => (
+      terms.reduce((acc, _, term) => (
+        acc.update(term, Set(), listIds => listIds.add(id))
       ), tokenDocIds)
     ));
   }
 
-  recursionAdding(docId, mapping, document = {}, fieldsOriginal, propertiesOriginal) {
-    mapping.forEach((fieldMapping, field) => {
-      const { [fieldsOriginal || field]: value = '' } = document;
-      const properties = fieldMapping.get('properties', Map());
-
-      if (!properties.isEmpty()) {
-        const list = List([].concat(document[field]));
-        const fieldName = propertiesOriginal ? `${propertiesOriginal}.${field}` : field;
-
-        list.forEach((element) => {
-          const fields = fieldMapping.get('properties', Map());
-          this.recursionAdding(docId, fields, element, undefined, fieldName);
-        });
-      } else {
-        const analyzerName = fieldMapping.get('analyzer', 'standard');
-        const fieldName = (fieldsOriginal || propertiesOriginal) ? `${(fieldsOriginal || propertiesOriginal)}.${field}` : field;
-
-        this.addDataField({ docId, value, fieldName, analyzerName });
-
-        const fields = fieldMapping.get('fields', Map());
-
-        if (!fieldsOriginal && !fields.isEmpty()) {
-          this.recursionAdding(docId, fields, document, field);
-        }
-      }
-    });
-  }
-
-  add(document = {}) {
-    try {
-      const { docKey, mapping, documentIndex } = this;
-      const { [docKey]: docId } = document;
-
-      if (!docId) { return false; }
-
-      this.documentIndex = documentIndex.set(docId, document);
-      this.recursionAdding(docId, mapping, document);
-
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  delete(docId) {
-    if (!docId) { return false; }
+  delete(id) {
+    if (!id) { return false; }
 
     let { tokenDocIdsIndex, fieldLengthIndex, fieldCountIndex } = this;
-    const { documentIndex, docIdTokensIndex } = this;
 
-    this.docIdTokensIndex = docIdTokensIndex.map((docIdTokens, field) => {
-      const tokens = docIdTokens.getIn([docId, 'terms'], []);
-      const termsLength = docIdTokens.getIn([docId, 'termsLength'], 0);
+    this.docIdTokensIndex = this.docIdTokensIndex.map((docIdTokens, field) => {
+      const tokens = docIdTokens.getIn([id, 'terms'], []);
+      const termsLength = docIdTokens.getIn([id, 'termsLength'], 0);
 
       tokenDocIdsIndex = tokens.reduce((acc, _, token) => {
-        const newAcc = acc.deleteIn([field, token, docId]);
+        const newAcc = acc.deleteIn([field, token, id]);
         const currentTokenDocIds = newAcc.getIn([field, token]);
 
         if (!currentTokenDocIds.count()) {
@@ -114,10 +60,9 @@ class ElasticLike {
         Math.max(value - termsLength, 0)
       ));
 
-      return docIdTokens.delete(docId);
+      return docIdTokens.delete(id);
     });
 
-    this.documentIndex = documentIndex.delete(docId);
     this.tokenDocIdsIndex = tokenDocIdsIndex;
     this.fieldLengthIndex = fieldLengthIndex;
     this.fieldCountIndex = fieldCountIndex;
@@ -125,15 +70,136 @@ class ElasticLike {
     return true;
   }
 
-  update(document = {}) {
-    const { docKey } = this;
-    const { [docKey]: docId } = document;
+  getFieldCount(field) {
+    return this.fieldCountIndex.get(field, 0);
+  }
 
+  getFieldLength(field) {
+    return this.fieldLengthIndex.get(field, 0);
+  }
+
+  getAvgdl(field) {
+    const docFieldCount = this.fieldCountIndex.get(field, 0);
+    const docFieldLength = this.fieldLengthIndex.get(field, 0);
+
+    return docFieldLength / Math.max(docFieldCount, 1);
+  }
+
+  getIdsByTerm(field, term, count = 0) {
+    return this.tokenDocIdsIndex
+      .getIn([field, term], Set())
+      .filter(docId => count <= this.docIdTokensIndex.getIn([field, docId, 'terms', term], 0));
+  }
+
+  getDl(id, field) {
+    return this.docIdTokensIndex.getIn([field, id, 'termsLength'], 0);
+  }
+
+  getFreq(id, field, term) {
+    return this.docIdTokensIndex.getIn([field, id, 'terms', term], 0);
+  }
+
+  getFieldFreq(field, term) {
+    return this.tokenDocIdsIndex.getIn([field, term], Set()).count();
+  }
+}
+
+const fieldTermCalc = (mapping, document, originalField) => (
+  mapping.reduce((docTermsAcc, fieldMapping, field) => {
+    const { [originalField || field]: value = '' } = document;
+    const properties = fieldMapping.get('properties', Map());
+
+    if (!properties.isEmpty() && value instanceof Object) {
+      return List([].concat(value))
+        .reduce((fieldAcc, childrenDocument) => {
+          const propertiesMapping = fieldMapping.get('properties', Map());
+          const propertiesTermCount = fieldTermCalc(propertiesMapping, childrenDocument)
+            .mapKeys(childrenField => `${field}.${childrenField}`);
+
+          return propertiesTermCount.reduce((newFieldAcc, termCount, _field) => (
+            newFieldAcc.update(_field, Map(), oldTermCount => (
+              termCount.reduce((termAcc, count, term) => (
+                termAcc.update(term, 0, oldCount => oldCount + count)
+              ), oldTermCount)
+            ))
+          ), fieldAcc);
+        }, docTermsAcc);
+    }
+
+    if (typeof value !== 'object') {
+      const fields = fieldMapping.get('fields', Map());
+      const analyzerName = fieldMapping.get('analyzer', 'standard');
+
+      const terms = analysis(value, analyzerName);
+
+      const fieldTermCount = docTermsAcc.update(field, Map(), oldTerms => (
+        terms.reduce((termsAcc, count, term) => (
+          termsAcc.update(term, 0, oldCount => oldCount + count)
+        ), oldTerms)
+      ));
+
+      if (fields.isEmpty()) {
+        return fieldTermCount;
+      }
+
+      return fieldTermCalc(fields, document, field)
+        .mapKeys(key => `${field}.${key}`)
+        .reduce((newFieldAcc, termCount, _field) => (
+          newFieldAcc.update(_field, Map(), oldTermCount => (
+            termCount.reduce((termAcc, count, term) => (
+              termAcc.update(term, 0, oldCount => oldCount + count)
+            ), oldTermCount)
+          ))
+        ), fieldTermCount);
+    }
+
+    return docTermsAcc;
+  }, Map())
+);
+
+class ElasticLike {
+  constructor(config = {}) {
+    const { mapping = {} } = config;
+    const _mapping = initMapping(mapping);
+    this.mapping = _mapping;
+
+    this.documentIndex = Map();
+    this.tfidf = new TermFrequency();
+  }
+
+  add(docId, document = {}) {
+    try {
+      const { mapping, documentIndex } = this;
+
+      if (!docId) { return false; }
+
+      this.documentIndex = documentIndex.set(docId, document);
+
+      fieldTermCalc(mapping, document).forEach((terms, field) => {
+        this.tfidf.add(docId, field, terms);
+      });
+
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  delete(docId) {
+    if (!docId) { return false; }
+
+    this.documentIndex = this.documentIndex.delete(docId);
+    this.tfidf.delete(docId);
+
+    return true;
+  }
+
+  update(docId, document = {}) {
     if (!docId) { return false; }
 
     this.delete(docId);
 
-    return this.add(document);
+    return this.add(docId, document);
   }
 
   /**
@@ -157,10 +223,15 @@ class ElasticLike {
   }
 
   calcIds(clause = {}, docIdsMustAppear) {
-    const { match, bool } = clause;
+    const { match, bool, nested } = clause;
 
     if (match) {
       return this.calcIdsByMatchClause(match, docIdsMustAppear);
+    }
+
+    // TODO:
+    if (nested) {
+      return [];
     }
 
     const { must, should } = bool;
@@ -180,29 +251,30 @@ class ElasticLike {
 
   calcIdsByMatchClause(matchClause = {}, docIdsMustAppear) {
     const { query, field } = matchClause;
-    const { mapping, docIdTokensIndex, tokenDocIdsIndex } = this;
+    const { mapping } = this;
     const analyzerName = mapping.getIn([field, 'search_analyzer'], 'standard');
-    const terms = analysis(analyzerName, query);
+    const terms = analysis(query, analyzerName);
 
-    const docTerms = terms.reduce((acc, term) => (
-      acc.update(term, 0, count => count + 1)
-    ), Map());
-
-    return docTerms.reduce((acc, count, term) => {
-      const ids = tokenDocIdsIndex
-        .getIn([field, term], Set())
-        .filter(docId => count <= docIdTokensIndex.getIn([field, docId, 'terms', term], 0));
+    return terms.reduce((acc, count, term) => {
+      const ids = this.tfidf.getIdsByTerm(field, term, count);
 
       return Set.isSet(acc) ? acc.intersect(ids) : ids;
     }, docIdsMustAppear);
   }
 
   calculate(clause = {}, docIdsMustAppear) {
-    if (clause.match) {
-      return this.calculateScore(clause.match, docIdsMustAppear);
+    const { match, nested, bool } = clause;
+
+    if (match) {
+      return this.calculateScore(match, docIdsMustAppear);
     }
 
-    const { must, should } = clause.bool;
+    // TODO:
+    if (nested) {
+      return Map();
+    }
+
+    const { must, should } = bool;
 
     const docScoreIndex = must.reduce((accDocScore, _clause) => {
       const docScore = this.calculate(_clause, docIdsMustAppear);
@@ -225,31 +297,25 @@ class ElasticLike {
 
   calculateScore(matchClause = {}, docIdsMustAppear) {
     const { query, field, boost } = matchClause;
-    const { mapping, fieldCountIndex, fieldLengthIndex, docIdTokensIndex, tokenDocIdsIndex } = this;
+    const { mapping } = this;
     const analyzerName = mapping.getIn([field, 'search_analyzer'], 'standard');
+    const terms = analysis(query, analyzerName);
 
-    const docFieldCount = fieldCountIndex.get(field, 0);
-    const docFieldLength = fieldLengthIndex.get(field, 0);
-    const avgdl = docFieldLength / Math.max(docFieldCount, 1);
-    const terms = analysis(analyzerName, query);
+    const avgdl = this.tfidf.getAvgdl(field);
+    const docFieldCount = this.tfidf.getFieldCount(field);
 
-    const docTerms = terms.reduce((acc, term) => (
-      acc.update(term, 0, count => count + 1)
-    ), Map());
-
-    const docIds = docTerms.reduce((acc, count, term) => {
-      const ids = tokenDocIdsIndex
-        .getIn([field, term], Set())
-        .filter(docId => count <= docIdTokensIndex.getIn([field, docId, 'terms', term], 0));
+    const docIds = terms.reduce((acc, count, term) => {
+      const ids = this.tfidf.getIdsByTerm(field, term, count);
 
       return Set.isSet(acc) ? acc.intersect(ids) : ids;
     }, docIdsMustAppear);
 
     return docIds.reduce((accScore, docId) => {
-      const score = docTerms.reduce((sumScore, _, term) => {
-        const dl = docIdTokensIndex.getIn([field, docId, 'termsLength'], 0);
-        const freq = docIdTokensIndex.getIn([field, docId, 'terms', term], 0);
-        const docFieldFreq = tokenDocIdsIndex.getIn([field, term], Set()).count();
+      const dl = this.tfidf.getDl(docId, field);
+
+      const score = terms.reduce((sumScore, _, term) => {
+        const freq = this.tfidf.getFreq(docId, field, term);
+        const docFieldFreq = this.tfidf.getFieldFreq(field, term);
         const idf = Math.log(1 + (docFieldCount - docFieldFreq + 0.5) / (docFieldFreq + 0.5));
 
         return sumScore + bm25Scoring({ idf, freq, dl, avgdl });

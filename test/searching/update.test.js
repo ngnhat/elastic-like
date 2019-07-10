@@ -12,7 +12,7 @@ describe('update a document:', () => {
         Name: { type: 'text', analyzer: 'standard' },
       },
     });
-    store.update({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
+    store.update(1, { Id: 1, Code: 'aaa', Name: 'quick brown fox' });
 
     expect(store.search({
       bool: {
@@ -33,8 +33,8 @@ describe('update a document:', () => {
       },
     });
 
-    store.add({ Id: 1, Code: 'aaa', Name: 'quick brown fox' });
-    store.update({ Id: 1, Code: 'abc', Name: 'quick fox updated.' });
+    store.add(1, { Id: 1, Code: 'aaa', Name: 'quick brown fox' });
+    store.update(1, { Id: 1, Code: 'abc', Name: 'quick fox updated.' });
 
     expect(store.search({
       bool: {
