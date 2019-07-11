@@ -1,4 +1,4 @@
-const buildMatchQuery = (match = {}) => {
+const buildMatchQuery = (match) => {
   if (!(match instanceof Object)) {
     throw new Error('match must be Object Type');
   }
@@ -16,47 +16,58 @@ const buildMatchQuery = (match = {}) => {
   };
 };
 
-const queryFormatting = (query = {}) => {
-  if (
-    !(query instanceof Object)
-    || (
-      !(query.bool instanceof Object)
-      && !(query.match instanceof Object)
-      && !(query.nested instanceof Object)
-    )
-    || [
-      query.bool instanceof Object,
-      query.match instanceof Object,
-      query.nested instanceof Object,
-    ].filter(boolean => boolean).length > 1
-  ) {
+const queryFormatting = (query) => {
+  if (!(query instanceof Object)) {
     throw new Error('parsing exception');
   }
 
-  if (query.match instanceof Object) {
+  const { bool, match, nested, functionScore } = query;
+
+  if (match instanceof Object) {
     return {
-      match: buildMatchQuery(query.match),
+      match: buildMatchQuery(match),
     };
   }
 
-  if (query.nested instanceof Object) {
+  if (bool instanceof Object) {
+    const { must = [], must_not = [], should = [] } = bool;
+
     return {
-      nested: {
-        path: query.nested.path,
-        query: queryFormatting(query.nested.query),
+      bool: {
+        must: must.map(queryFormatting),
+        should: should.map(queryFormatting),
+        must_not: must_not.map(queryFormatting),
       },
     };
   }
 
-  const { must = [], must_not = [], should = [] } = query.bool;
+  if (nested instanceof Object) {
+    const { path, query: nestedQuery } = nested;
 
-  return {
-    bool: {
-      must: must.map(queryFormatting),
-      should: should.map(queryFormatting),
-      must_not: must_not.map(queryFormatting),
-    },
-  };
+    return {
+      nested: {
+        path,
+        query: queryFormatting(nestedQuery),
+      },
+    };
+  }
+
+  if (functionScore instanceof Object) {
+    const { scriptScore, query: functionScoreQuery } = functionScore;
+
+    if (!scriptScore) {
+      throw new Error('parsing exception');
+    }
+
+    return {
+      functionScore: {
+        scriptScore,
+        query: queryFormatting(functionScoreQuery),
+      },
+    };
+  }
+
+  throw new Error('parsing exception');
 };
 
 module.exports = queryFormatting;
