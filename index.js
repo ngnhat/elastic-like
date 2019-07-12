@@ -24,13 +24,14 @@ class TermFrequency {
       this.docIdTermsIndex = this.docIdTermsIndex
         .updateIn([field, id, 'terms'], Map(), tokens => (
           nestedTerm.reduce((acc, count, token) => {
-            const newAcc = acc.updateIn([token, 'count'], 0, totalCount => totalCount + count);
-
             if (isNested) {
-              return newAcc.updateIn([token, 'indexs'], Set(), indexs => indexs.add(index));
+              return acc
+                .updateIn([token, 'count'], 0, totalCount => totalCount + count)
+                .updateIn([token, 'indexs'], Set(), indexs => indexs.add(index));
             }
 
-            return newAcc;
+            return acc
+              .updateIn([token, 'count'], 0, totalCount => totalCount + count);
           }, tokens)
         ))
         .updateIn([field, id, 'termsLength'], 0, oldLength => oldLength + termsLength);
@@ -316,25 +317,25 @@ class ElasticLike {
     return Set();
   }
 
-  calcNestedIds(clause = {}, docIdsMustAppear) {
+  calcNestedIds(clause = {}, nestedDocIdsMustAppear) {
     const { match, bool } = clause;
 
     if (match) {
-      return this.calcIdsByNestedClause(match, docIdsMustAppear);
+      return this.calcIdsByNestedClause(match, nestedDocIdsMustAppear);
     }
 
     const { must, should } = bool;
 
     const mustIds = must.reduce((accIds, _clause) => (
       this.calcNestedIds(_clause, accIds)
-    ), docIdsMustAppear);
+    ), nestedDocIdsMustAppear);
 
     if (mustIds) {
       return mustIds;
     }
 
     return should.reduce((accNestedIds, _clause) => {
-      const nestedIds = this.calcNestedIds(_clause, docIdsMustAppear);
+      const nestedIds = this.calcNestedIds(_clause, nestedDocIdsMustAppear);
 
       return nestedIds.reduce((acc, indexs, docId) => (
         acc.update(docId, Set(), currentIndexs => currentIndexs.union(indexs))
@@ -342,7 +343,7 @@ class ElasticLike {
     }, Map());
   }
 
-  calcIdsByNestedClause(matchClause = {}, docIdsMustAppear) {
+  calcIdsByNestedClause(matchClause = {}, nestedDocIdsMustAppear) {
     const { query, field } = matchClause;
     const analyzerName = this.getSearchAnalyzerName(field);
     const terms = analysis(query, analyzerName);
@@ -359,7 +360,7 @@ class ElasticLike {
           nestedIdsAcc.update(key, Set(), currentVal => currentVal.intersect(value))
         ), docIdsAcc)
         .filter(value => !value.isEmpty());
-    }, docIdsMustAppear);
+    }, nestedDocIdsMustAppear) || Map();
   }
 
   calcIdsByMatchClause(matchClause = {}, docIdsMustAppear) {
@@ -371,7 +372,7 @@ class ElasticLike {
       const ids = this.tfidf.getIdsByTerm(field, term, count);
 
       return Set.isSet(acc) ? acc.intersect(ids) : ids;
-    }, docIdsMustAppear);
+    }, docIdsMustAppear) || Set();
   }
 
   calculate(clause = {}, docIdsMustAppear, isNested = false) {
@@ -392,7 +393,7 @@ class ElasticLike {
     if (functionScore) {
       const { query: functionScoreQuery, scriptScore } = functionScore;
       const scores = this.calculate(functionScoreQuery, docIdsMustAppear, isNested);
-      // TODO: something went wrong
+
       return scores.map(scriptScore);
     }
 
@@ -417,17 +418,12 @@ class ElasticLike {
 
   calculateScore(matchClause = {}, docIdsMustAppear) {
     const { query, field, boost } = matchClause;
+    const avgdl = this.tfidf.getAvgdl(field);
+    const docFieldCount = this.tfidf.getFieldCount(field);
     const analyzerName = this.getSearchAnalyzerName(field);
     const terms = analysis(query, analyzerName);
 
-    const avgdl = this.tfidf.getAvgdl(field);
-    const docFieldCount = this.tfidf.getFieldCount(field);
-
-    const docIds = terms.reduce((acc, count, term) => {
-      const ids = this.tfidf.getIdsByTerm(field, term, count);
-
-      return Set.isSet(acc) ? acc.intersect(ids) : ids;
-    }, docIdsMustAppear);
+    const docIds = this.calcIdsByMatchClause(matchClause, docIdsMustAppear);
 
     return docIds.reduce((docsWithScore, docId) => {
       const dl = this.tfidf.getDl(docId, field);
@@ -446,29 +442,13 @@ class ElasticLike {
 
   calculateNestedScore(matchClause = {}, docIdsMustAppear) {
     const { query, field, boost } = matchClause;
+    const avgdl = this.tfidf.getAvgdl(field);
+    const docFieldCount = this.tfidf.getFieldCount(field);
     const analyzerName = this.getSearchAnalyzerName(field);
     const terms = analysis(query, analyzerName);
 
-    const avgdl = this.tfidf.getAvgdl(field);
-    const docFieldCount = this.tfidf.getFieldCount(field);
-
-    const nestedDocIds = (
-      terms.reduce((nestedDocIdsAcc, count, term) => {
-        const nestedIds = this.tfidf.getNestedIdsByTerm(field, term, count);
-
-        if (!Map.isMap(nestedDocIdsAcc)) {
-          return nestedIds;
-        }
-
-        return nestedIds
-          .reduce((nestedIdsAcc, value, key) => (
-            nestedIdsAcc.update(key, Set(), currentVal => currentVal.intersect(value))
-          ), nestedDocIdsAcc)
-          .filter(value => !value.isEmpty());
-      }, null) || Map()
-    ).reduce((acc, _, docId) => acc.add(docId), Set());
-
-    const _docIds = nestedDocIds.reduce((acc, _, docId) => acc.add(docId), Set());
+    const _docIds = this.calcIdsByNestedClause(matchClause)
+      .reduce((acc, _, docId) => acc.add(docId), Set());
     const docIds = docIdsMustAppear ? docIdsMustAppear.intersect(_docIds) : _docIds;
 
     return docIds.reduce((docsWithScore, docId) => {
