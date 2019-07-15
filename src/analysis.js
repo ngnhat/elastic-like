@@ -2,7 +2,7 @@
  * Created by ngnhat on Mon July 15 2019
  */
 const { Map, fromJS, List } = require('immutable');
-const { nGramTokenizerCreater, asciiFolding } = require('tokenizers');
+const { asciiFolding, nGramTokenizerCreater, edgeNGramTokenizerCreater } = require('tokenizers');
 
 const analyzerFilter = (str = '', filters = []) => {
   if (!(filters instanceof Array)) {
@@ -18,7 +18,7 @@ const analyzerFilter = (str = '', filters = []) => {
   }, str);
 };
 
-const analysis = (analysisConfig = {}) => {
+const analyzerStore = (analysisConfig = {}) => {
   const config = fromJS(analysisConfig);
 
   return config.get('analyzer').reduce((acc, analyzerConfig, analyzerName) => {
@@ -36,15 +36,20 @@ const analysis = (analysisConfig = {}) => {
     const tokenizerType = tokenizer.get('type');
     const tokenChars = tokenizer.get('token_chars');
 
-    if (tokenizerType !== 'ngram') {
-      throw new Error(`the type ${tokenizerType} is not supported`);
-    }
-
     if (!minGram || !maxGram || !tokenChars) {
       throw new Error(`the tokenizer ${tokenizerName} is invalid`);
     }
 
-    const tokenizerFunc = nGramTokenizerCreater({
+    const tokenizerCreater = {
+      ngram: nGramTokenizerCreater,
+      edge_ngram: edgeNGramTokenizerCreater,
+    }[tokenizerType];
+
+    if (!tokenizerCreater) {
+      throw new Error(`the tokenizer type ${tokenizerType} is not supported`);
+    }
+
+    const tokenizerFunc = tokenizerCreater({
       min: minGram,
       max: maxGram,
       tokenChars: tokenChars.toJS(),
@@ -56,4 +61,4 @@ const analysis = (analysisConfig = {}) => {
   }, Map());
 };
 
-module.exports = analysis;
+module.exports = analyzerStore;

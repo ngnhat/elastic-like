@@ -1,77 +1,43 @@
 /**
  * Created by ngnhat on Mon July 15 2019
  */
-const analysis = require('../../src/analysis');
+const Store = require('../../index');
 
-describe('ngram', () => {
-  it('simple match ngram', () => {
-    const analysisConfig = {
-      tokenizer: {
-        ngram_tokenizer: {
-          min_gram: 3,
-          max_gram: 4,
-          type: 'ngram',
-          token_chars: ['letter', 'digit', 'whitespace'],
-        },
+const store = new Store({
+  analysis: {
+    tokenizer: {
+      edge_ngram_tokenizer: {
+        min_gram: 3,
+        max_gram: 10,
+        type: 'edge_ngram',
+        token_chars: ['letter', 'digit', 'whitespace'],
       },
-      analyzer: {
-        ngram_analyzer: {
-          tokenizer: 'ngram_tokenizer',
-        },
+    },
+    analyzer: {
+      edge_ngram_analyzer: {
+        tokenizer: 'edge_ngram_tokenizer',
       },
-    };
+    },
+  },
+  mapping: {
+    code: { type: 'text', analyzer: 'standard' },
+    name: { type: 'text', analyzer: 'standard' },
+  },
+});
 
-    const ngramAnalyzer = analysis(analysisConfig).get('ngram_analyzer');
+store.add(1, { id: 1, name: 'aaabbbccc' });
+store.add(2, { id: 2, name: 'ddd eee fff' });
 
-    expect(ngramAnalyzer('có dấu')).toEqual([
-      'có ',
-      'có d',
-      'ó d',
-      'ó dấ',
-      ' dấ',
-      ' dấu',
-      'dấu',
-    ]);
-  });
-
-  it('asciifolding ngram', () => {
-    const analysisConfig = {
-      tokenizer: {
-        ngram_tokenizer: {
-          min_gram: 4,
-          max_gram: 5,
-          type: 'ngram',
-          token_chars: ['letter', 'digit', 'whitespace'],
-        },
+describe('analysis', () => {
+  it('normal analysis', () => {
+    expect(store.search({
+      match: { query: 'bbc', field: 'name' },
+    })).toEqual([{
+      score: 1,
+      source: {
+        id: 1,
+        name: 'aaa bbb ccc',
       },
-      analyzer: {
-        ngram_analyzer: {
-          filter: ['asciifolding'],
-          tokenizer: 'ngram_tokenizer',
-        },
-      },
-    };
-
-    const ngramAnalyzer = analysis(analysisConfig).get('ngram_analyzer');
-
-    expect(ngramAnalyzer('Không có dấu')).toEqual([
-      'khon',
-      'khong',
-      'hong',
-      'hong ',
-      'ong ',
-      'ong c',
-      'ng c',
-      'ng co',
-      'g co',
-      'g co ',
-      ' co ',
-      ' co d',
-      'co d',
-      'co da',
-      'o da',
-      'o dau',
-      ' dau',
-    ]);
+    }]);
   });
 });

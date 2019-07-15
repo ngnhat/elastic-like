@@ -2,9 +2,9 @@
  * Created by ngnhat on Sat May 25 2019
  */
 const { List, Map, Set } = require('immutable');
+const buildClause = require('./src/query');
 const bm25Ranking = require('./ranking/bm25');
 const { initMapping, analysis } = require('./src/mapping');
-const buildClause = require('./src/query');
 
 class TermFrequency {
   constructor() {
@@ -204,6 +204,8 @@ class ElasticLike {
     this.documentIndex = Map();
     this.tfidf = new TermFrequency();
     this.mapping = initMapping(mapping);
+
+    console.log('mapping', this.mapping.toJS());
   }
 
   getSearchAnalyzerName(field) {
