@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Mon July 15 2019
  */
-const analysis = require('../../src/analysis');
+const Analysis = require('../../src/analysis');
 
 describe('ngram', () => {
   it('normal ngram', () => {
@@ -20,10 +20,9 @@ describe('ngram', () => {
         },
       },
     };
+    const analysis = new Analysis(analysisConfig);
 
-    const ngramAnalyzer = analysis(analysisConfig).get('ngram_analyzer');
-
-    expect(ngramAnalyzer('có dấu')).toEqual([
+    expect(analysis.getTerms('ngram_analyzer', 'có dấu')).toEqual([
       'có ',
       'có d',
       'ó d',
@@ -51,10 +50,9 @@ describe('ngram', () => {
         },
       },
     };
+    const analysis = new Analysis(analysisConfig);
 
-    const ngramAnalyzer = analysis(analysisConfig).get('ngram_analyzer');
-
-    expect(ngramAnalyzer('Không có dấu')).toEqual([
+    expect(analysis.getTerms('ngram_analyzer', 'Không có dấu')).toEqual([
       'khon',
       'khong',
       'hong',

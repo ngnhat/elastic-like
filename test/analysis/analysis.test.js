@@ -1,27 +1,26 @@
 /**
  * Created by ngnhat on Mon July 15 2019
  */
-const Store = require('../../index');
+const Store = require('../../src');
 
 const store = new Store({
   analysis: {
     tokenizer: {
-      edge_ngram_tokenizer: {
+      ngram_tokenizer: {
         min_gram: 3,
         max_gram: 10,
-        type: 'edge_ngram',
+        type: 'ngram',
         token_chars: ['letter', 'digit', 'whitespace'],
       },
     },
     analyzer: {
-      edge_ngram_analyzer: {
-        tokenizer: 'edge_ngram_tokenizer',
+      ngram_analyzer: {
+        tokenizer: 'ngram_tokenizer',
       },
     },
   },
   mapping: {
-    code: { type: 'text', analyzer: 'standard' },
-    name: { type: 'text', analyzer: 'standard' },
+    name: { type: 'text', analyzer: 'ngram_analyzer' },
   },
 });
 
@@ -33,10 +32,10 @@ describe('analysis', () => {
     expect(store.search({
       match: { query: 'bbc', field: 'name' },
     })).toEqual([{
-      score: 1,
+      score: 0.7624618986159398,
       source: {
         id: 1,
-        name: 'aaa bbb ccc',
+        name: 'aaabbbccc',
       },
     }]);
   });

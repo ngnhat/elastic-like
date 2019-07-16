@@ -1,12 +1,15 @@
-const buildMatchQuery = (match) => {
+/**
+ * Created by ngnhat on Sat May 25 2019
+ */
+const matchQueryParsing = (match) => {
   if (!(match instanceof Object)) {
-    throw new Error('match must be Object Type');
+    throw new Error('Parsing Exception: match must be Object Type');
   }
 
   const { boost, field, query } = match;
 
   if (!(field && typeof field === 'string')) {
-    throw new Error('field is not exists');
+    throw new Error('Parsing Exception: field is not exists');
   }
 
   return {
@@ -16,27 +19,27 @@ const buildMatchQuery = (match) => {
   };
 };
 
-const queryFormatting = (query) => {
+const queryParsing = (query) => {
   if (!(query instanceof Object)) {
-    throw new Error('parsing exception');
+    throw new Error('Parsing Exception');
   }
 
   const { bool, match, nested, functionScore } = query;
 
   if (match instanceof Object) {
     return {
-      match: buildMatchQuery(match),
+      match: matchQueryParsing(match),
     };
   }
 
   if (bool instanceof Object) {
-    const { must = [], must_not = [], should = [] } = bool;
+    const { must = [], mustNot = [], should = [] } = bool;
 
     return {
       bool: {
-        must: must.map(queryFormatting),
-        should: should.map(queryFormatting),
-        must_not: must_not.map(queryFormatting),
+        must: must.map(queryParsing),
+        should: should.map(queryParsing),
+        mustNot: mustNot.map(queryParsing),
       },
     };
   }
@@ -47,7 +50,7 @@ const queryFormatting = (query) => {
     return {
       nested: {
         path,
-        query: queryFormatting(nestedQuery),
+        query: queryParsing(nestedQuery),
       },
     };
   }
@@ -56,18 +59,18 @@ const queryFormatting = (query) => {
     const { scriptScore, query: functionScoreQuery } = functionScore;
 
     if (!scriptScore) {
-      throw new Error('parsing exception');
+      throw new Error('Parsing Exception: scriptScore is not exists');
     }
 
     return {
       functionScore: {
         scriptScore,
-        query: queryFormatting(functionScoreQuery),
+        query: queryParsing(functionScoreQuery),
       },
     };
   }
 
-  throw new Error('parsing exception');
+  throw new Error('Parsing Exception');
 };
 
-module.exports = queryFormatting;
+module.exports = queryParsing;

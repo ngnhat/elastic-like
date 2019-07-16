@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Thu July 05 2019
  */
-const Store = require('../../index');
+const Store = require('../../src');
 
 describe('not nested testing', () => {
   it('not nested', () => {

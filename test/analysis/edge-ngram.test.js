@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Mon July 15 2019
  */
-const analysis = require('../../src/analysis');
+const Analysis = require('../../src/analysis');
 
 describe('edge-ngram', () => {
   it('normal edge-ngram', () => {
@@ -20,9 +20,9 @@ describe('edge-ngram', () => {
         },
       },
     };
-    const ngramAnalyzer = analysis(analysisConfig).get('edge_ngram_analyzer');
+    const analysis = new Analysis(analysisConfig);
 
-    expect(ngramAnalyzer('có dấu')).toEqual(['có ', 'có d', 'có dấ', 'có dấu']);
+    expect(analysis.getTerms('edge_ngram_analyzer', 'có dấu')).toEqual(['có ', 'có d', 'có dấ', 'có dấu']);
   });
 
   it('asciifolding edge-ngram', () => {
@@ -42,9 +42,9 @@ describe('edge-ngram', () => {
         },
       },
     };
-    const ngramAnalyzer = analysis(analysisConfig).get('edge_ngram_analyzer');
+    const analysis = new Analysis(analysisConfig);
 
-    expect(ngramAnalyzer('Không có dấu')).toEqual([
+    expect(analysis.getTerms('edge_ngram_analyzer', 'Không có dấu')).toEqual([
       'khon',
       'khong',
       'khong ',

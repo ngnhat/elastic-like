@@ -1,16 +1,16 @@
-const buildQuery = require('../../src/query');
+const queryParsing = require('../../src/query');
 
 describe('query:', () => {
   it('empty', () => {
     try {
-      buildQuery();
+      queryParsing();
     } catch (err) {
-      expect(err).toEqual(new Error('parsing exception'));
+      expect(err).toEqual(new Error('Parsing Exception'));
     }
   });
 
   it('match query', () => {
-    const query = buildQuery({
+    const query = queryParsing({
       match: { query: 'query1', field: 'Field1' },
     });
 
@@ -20,13 +20,13 @@ describe('query:', () => {
   });
 
   it('bool query', () => {
-    const query = buildQuery({
+    const query = queryParsing({
       bool: {
         must: [
           { match: { query: 'query1', field: 'Field1' } },
           { match: { query: 'query2', field: 'Field2' } },
         ],
-        must_not: [
+        mustNot: [
           { match: { query: 'query3', field: 'Field3' } },
         ],
         should: [
@@ -41,7 +41,7 @@ describe('query:', () => {
           { match: { field: 'Field1', query: 'query1', boost: 1 } },
           { match: { field: 'Field2', query: 'query2', boost: 1 } },
         ],
-        must_not: [
+        mustNot: [
           { match: { field: 'Field3', query: 'query3', boost: 1 } },
         ],
         should: [
@@ -52,7 +52,7 @@ describe('query:', () => {
   });
 
   it('function score', () => {
-    const query = buildQuery({
+    const query = queryParsing({
       functionScore: {
         query: {
           match: { field: 'Field1', query: 'query1' },

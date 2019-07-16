@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Sun June 30 2019
  */
-const { initMapping } = require('../../src/mapping');
+const initMapping = require('../../src/mapping');
 
 describe('mapping', () => {
   it('empty', () => {

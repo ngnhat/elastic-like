@@ -1,4 +1,4 @@
-const Store = require('../../index');
+const Store = require('../../src');
 
 const store = new Store({
   mapping: {
