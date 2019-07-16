@@ -4,22 +4,24 @@
 const { Map, Set } = require('immutable');
 const Frequency = require('./frequency');
 const Analysis = require('./analysis');
-const buildClause = require('./query');
+const queryParsing = require('./query');
 const initMapping = require('./mapping');
 const bm25Ranking = require('./ranking/bm25');
 
 class ElasticLike {
+  #tfidf;
+
   #mapping;
 
   #analysis;
 
-  #documentIndex = Map();
-
-  #tfidf = new Frequency();
+  #documentIndex;
 
   constructor(config = {}) {
     const { mapping = {}, analysis = {} } = config;
 
+    this.#documentIndex = Map();
+    this.#tfidf = new Frequency();
     this.#mapping = initMapping(mapping);
     this.#analysis = new Analysis(analysis);
   }
@@ -73,7 +75,7 @@ class ElasticLike {
    * operator = and
    */
   search = (_clause = {}) => {
-    const clause = buildClause(_clause);
+    const clause = queryParsing(_clause);
 
     try {
       const docIds = this.#calcIds(clause);
@@ -81,10 +83,15 @@ class ElasticLike {
 
       return docScoreIndex
         .sort((a, b) => b - a)
-        .reduce((acc, score, docId) => ([
-          ...acc,
-          { score, source: this.#documentIndex.get(docId) },
-        ]), []);
+        .reduce((acc, score, docId) => {
+          const source = this.#documentIndex.get(docId);
+
+          if (!source) {
+            return acc;
+          }
+
+          return [...acc, { score, source }];
+        }, []);
     } catch {
       return [];
     }

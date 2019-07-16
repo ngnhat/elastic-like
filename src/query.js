@@ -3,13 +3,13 @@
  */
 const matchQueryParsing = (match) => {
   if (!(match instanceof Object)) {
-    throw new Error('Parsing Exception: match must be Object Type');
+    throw new Error('[Parsing Exception] match must be Object Type');
   }
 
   const { boost, field, query } = match;
 
   if (!(field && typeof field === 'string')) {
-    throw new Error('Parsing Exception: field is not exists');
+    throw new Error('[Parsing Exception] field is not exists');
   }
 
   return {
@@ -21,7 +21,7 @@ const matchQueryParsing = (match) => {
 
 const queryParsing = (query) => {
   if (!(query instanceof Object)) {
-    throw new Error('Parsing Exception');
+    throw new Error('[Parsing Exception]');
   }
 
   const { bool, match, nested, functionScore } = query;
@@ -59,7 +59,7 @@ const queryParsing = (query) => {
     const { scriptScore, query: functionScoreQuery } = functionScore;
 
     if (!scriptScore) {
-      throw new Error('Parsing Exception: scriptScore is not exists');
+      throw new Error('[Parsing Exception] scriptScore is not exists');
     }
 
     return {
@@ -70,7 +70,7 @@ const queryParsing = (query) => {
     };
   }
 
-  throw new Error('Parsing Exception');
+  throw new Error('[Parsing Exception]');
 };
 
 module.exports = queryParsing;

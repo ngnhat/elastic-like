@@ -8,12 +8,12 @@ const mappingParsing = (_mapping = {}) => {
 
   return mapping.map((fieldMapping, field) => {
     if (field.includes('.')) {
-      throw new Error(`[mapper_parsing_exception]: ${field}`);
+      throw new Error(`[Mapping Parsing Exception]: ${field}`);
     }
 
     if (fieldMapping.has('properties')) {
       if (fieldMapping.has('analyzer') || fieldMapping.has('search_analyzer')) {
-        throw new Error(`[mapper_parsing_exception]: ${field}`);
+        throw new Error(`[Mapping Parsing Exception]: ${field}`);
       }
 
       return fieldMapping

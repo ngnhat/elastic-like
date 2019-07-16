@@ -214,7 +214,7 @@ describe('mapping', () => {
         },
       }).toJS();
     } catch (err) {
-      expect(err).toEqual(new Error('[mapper_parsing_exception]: name.folded'));
+      expect(err).toEqual(new Error('[Mapping Parsing Exception]: name.folded'));
     }
   });
 });

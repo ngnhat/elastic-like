@@ -5,7 +5,7 @@ describe('query:', () => {
     try {
       queryParsing();
     } catch (err) {
-      expect(err).toEqual(new Error('Parsing Exception'));
+      expect(err).toEqual(new Error('[Parsing Exception]'));
     }
   });
 

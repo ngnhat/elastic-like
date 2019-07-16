@@ -16,7 +16,7 @@ const initialAnalysisValue = Map()
 
 const analyzerFilter = (str = '', filters = []) => {
   if (!(filters instanceof Array)) {
-    throw new Error('');
+    throw new Error('[Filter Parsing Exception]');
   }
 
   return filters.reduce((accStr, filterName) => {
@@ -38,7 +38,7 @@ const analysisParsing = (_analysisConfig = {}) => {
     const tokenizer = tokenizerConfig.get(tokenizerName);
 
     if (!tokenizer) {
-      throw new Error(`the tokenizer ${tokenizerName} is not exists`);
+      throw new Error(`[Analysis Parsing Exception] the tokenizer ${tokenizerName} is not exists`);
     }
 
     const minGram = tokenizer.get('min_gram');
@@ -48,7 +48,7 @@ const analysisParsing = (_analysisConfig = {}) => {
     const analyzerFilters = config.get('filter', List()).toJS();
 
     if (!minGram || !maxGram) {
-      throw new Error(`the tokenizer ${tokenizerName} is invalid`);
+      throw new Error(`[Analysis Parsing Exception] the tokenizer ${tokenizerName} is invalid`);
     }
 
     const tokenizerCreater = {
@@ -57,7 +57,7 @@ const analysisParsing = (_analysisConfig = {}) => {
     }[tokenizerType];
 
     if (!tokenizerCreater) {
-      throw new Error(`the tokenizer type ${tokenizerType} is not supported`);
+      throw new Error(`[Analysis Parsing Exception] the tokenizer type ${tokenizerType} is not supported`);
     }
 
     const tokenizerFunc = tokenizerCreater({
@@ -73,7 +73,7 @@ const analysisParsing = (_analysisConfig = {}) => {
 };
 
 class Analysis {
-  #analysis = Map();
+  #analysis;
 
   constructor(config = {}) {
     this.#analysis = analysisParsing(config);

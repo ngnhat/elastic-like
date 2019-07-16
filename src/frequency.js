@@ -4,13 +4,20 @@
 const { List, Map, Set } = require('immutable');
 
 class Frequency {
-  #docIdTermsIndex = Map();
+  #docIdTermsIndex;
 
-  #termDocIdsIndex = Map();
+  #termDocIdsIndex;
 
-  #fieldCountIndex = Map();
+  #fieldCountIndex;
 
-  #fieldLengthIndex = Map();
+  #fieldLengthIndex;
+
+  constructor() {
+    this.#docIdTermsIndex = Map();
+    this.#termDocIdsIndex = Map();
+    this.#fieldCountIndex = Map();
+    this.#fieldLengthIndex = Map();
+  }
 
   add(id, field, termsIndex) {
     const isNested = List.isList(termsIndex);
