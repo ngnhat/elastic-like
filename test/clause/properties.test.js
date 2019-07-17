@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Thu July 04 2019
  */
-const Store = require('../../index');
+const Store = require('../../src');
 
 const store = new Store({
   mapping: {

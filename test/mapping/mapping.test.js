@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Sun June 30 2019
  */
-const { initMapping } = require('../../src/mapping');
+const initMapping = require('../../src/mapping');
 
 describe('mapping', () => {
   it('empty', () => {
@@ -214,7 +214,7 @@ describe('mapping', () => {
         },
       }).toJS();
     } catch (err) {
-      expect(err).toEqual(new Error('[mapper_parsing_exception]: name.folded'));
+      expect(err).toEqual(new Error('[Mapping Parsing Exception]: name.folded'));
     }
   });
 });

@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "elastic-like",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "main": "index.js",
   "license": "MIT",
   "author": "ngnhat | ngnhatjs@gmail.com",
@@ -11,17 +11,25 @@
   },
   "scripts": {
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build-module": "BABEL_ENV=module babel ./src -d ./lib"
   },
   "dependencies": {
     "immutable": "^4.0.0-rc.12",
-    "tokenizers": "^0.1.10"
+    "tokenizers": "^0.1.12"
   },
   "devDependencies": {
+    "@babel/cli": "^7.5.0",
+    "@babel/core": "^7.5.4",
+    "@babel/plugin-proposal-class-properties": "^7.5.0",
+    "@babel/plugin-proposal-private-methods": "^7.4.4",
+    "@babel/preset-env": "^7.5.4",
+    "babel-eslint": "^10.0.2",
+    "babel-jest": "^24.8.0",
     "eslint": "^6.0.1",
     "eslint-config-airbnb-base": "^13.2.0",
     "eslint-plugin-import": "^2.18.0",
-    "eslint-plugin-jest": "^22.7.1",
+    "eslint-plugin-jest": "^22.8.0",
     "jest": "^24.8.0"
   },
   "os": [

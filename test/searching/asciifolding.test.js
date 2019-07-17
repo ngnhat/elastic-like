@@ -1,7 +1,7 @@
 /**
  * Created by ngnhat on Sat May 25 2019
  */
-const Store = require('../../index');
+const Store = require('../../src');
 
 describe('vietnamese:', () => {
   it('buổi trưa ăn bưởi chua: standard', () => {
