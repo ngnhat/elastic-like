@@ -2,7 +2,7 @@
   "type": "module",
   "name": "elastic-like",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "lib/index.js",
   "license": "MIT",
   "author": "ngnhat | ngnhatjs@gmail.com",
   "repository": {
@@ -29,7 +29,7 @@
     "eslint": "^6.0.1",
     "eslint-config-airbnb-base": "^13.2.0",
     "eslint-plugin-import": "^2.18.0",
-    "eslint-plugin-jest": "^22.8.0",
+    "eslint-plugin-jest": "^22.10.0",
     "jest": "^24.8.0"
   },
   "os": [
