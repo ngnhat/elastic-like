@@ -27,28 +27,28 @@ class Frequency {
       const termsLength = nestedTerm.reduce((length, count) => length + count, 0);
 
       this.#docIdTermsIndex = this.#docIdTermsIndex
-        .updateIn([field, id, 'terms'], Map(), tokens => (
+        .updateIn([field, id, 'terms'], Map(), (tokens) => (
           nestedTerm.reduce((acc, count, token) => {
             if (isNested) {
               return acc
-                .updateIn([token, 'count'], 0, totalCount => totalCount + count)
-                .updateIn([token, 'indexs'], Set(), indexs => indexs.add(index));
+                .updateIn([token, 'count'], 0, (totalCount) => totalCount + count)
+                .updateIn([token, 'indexs'], Set(), (indexs) => indexs.add(index));
             }
 
             return acc
-              .updateIn([token, 'count'], 0, totalCount => totalCount + count);
+              .updateIn([token, 'count'], 0, (totalCount) => totalCount + count);
           }, tokens)
         ))
-        .updateIn([field, id, 'termsLength'], 0, oldLength => oldLength + termsLength);
+        .updateIn([field, id, 'termsLength'], 0, (oldLength) => oldLength + termsLength);
 
       this.#fieldLengthIndex = this.#fieldLengthIndex
-        .update(field, 0, length => length + termsLength);
+        .update(field, 0, (length) => length + termsLength);
       this.#fieldCountIndex = this.#fieldCountIndex
-        .update(field, 0, count => count + (termsLength ? 1 : 0));
+        .update(field, 0, (count) => count + (termsLength ? 1 : 0));
 
-      this.#termDocIdsIndex = this.#termDocIdsIndex.update(field, Map(), tokenDocIds => (
+      this.#termDocIdsIndex = this.#termDocIdsIndex.update(field, Map(), (tokenDocIds) => (
         nestedTerm.reduce((acc, _, _term) => (
-          acc.update(_term, Set(), listIds => listIds.add(id))
+          acc.update(_term, Set(), (listIds) => listIds.add(id))
         ), tokenDocIds)
       ));
     });
@@ -73,10 +73,10 @@ class Frequency {
       }, this.#termDocIdsIndex);
 
       this.#fieldCountIndex = this.#fieldCountIndex
-        .update(field, 0, value => Math.max(value - 1, 0));
+        .update(field, 0, (value) => Math.max(value - 1, 0));
 
       this.#fieldLengthIndex = this.#fieldLengthIndex
-        .update(field, 0, value => Math.max(value - termsLength, 0));
+        .update(field, 0, (value) => Math.max(value - termsLength, 0));
 
       return docIdTokens.delete(id);
     });
@@ -98,13 +98,13 @@ class Frequency {
   getIdsByTerm(field, term, count = 0) {
     return this.#termDocIdsIndex
       .getIn([field, term], Set())
-      .filter(docId => count <= this.#docIdTermsIndex.getIn([field, docId, 'terms', term, 'count'], 0));
+      .filter((docId) => count <= this.#docIdTermsIndex.getIn([field, docId, 'terms', term, 'count'], 0));
   }
 
   getNestedIdsByTerm(field, term, count = 0) {
     return this.#termDocIdsIndex
       .getIn([field, term], Set())
-      .filter(docId => count <= this.#docIdTermsIndex.getIn([field, docId, 'terms', term, 'count'], 0))
+      .filter((docId) => count <= this.#docIdTermsIndex.getIn([field, docId, 'terms', term, 'count'], 0))
       .reduce((acc, docId) => (
         acc.set(docId, this.#docIdTermsIndex.getIn([field, docId, 'terms', term, 'indexs'], Set()))
       ), Map());

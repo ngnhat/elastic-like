@@ -33,7 +33,7 @@ describe('function score', () => {
         query: {
           match: { query: 'code 001', field: 'code' },
         },
-        scriptScore: score => (2 - 1 / (score + 1)),
+        scriptScore: (score) => (2 - 1 / (score + 1)),
       },
     })).toEqual([{
       score: 1.4667999630796829,

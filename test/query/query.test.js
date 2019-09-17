@@ -57,7 +57,7 @@ describe('query:', () => {
         query: {
           match: { field: 'Field1', query: 'query1' },
         },
-        scriptScore: score => (2 - 1 / (score + 1)),
+        scriptScore: (score) => (2 - 1 / (score + 1)),
       },
     });
 

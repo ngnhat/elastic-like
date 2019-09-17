@@ -66,7 +66,7 @@ const analysisParsing = (_analysisConfig = {}) => {
       tokenChars: tokenChars.toJS(),
     });
 
-    const analyzerFunction = str => tokenizerFunc(analyzerFilter(str, analyzerFilters));
+    const analyzerFunction = (str) => tokenizerFunc(analyzerFilter(str, analyzerFilters));
 
     return analysis.set(analyzerName, analyzerFunction);
   }, initialAnalysisValue);
@@ -86,7 +86,7 @@ class Analysis {
 
   getCountedTerms = (analyzerName = 'standard', str = '') => {
     const terms = this.getTerms(analyzerName, str);
-    return terms.reduce((acc, term) => acc.update(term, 0, count => count + 1), Map());
+    return terms.reduce((acc, term) => acc.update(term, 0, (count) => count + 1), Map());
   }
 
   calcDocTerms = (mapping, document, originalField) => (
@@ -104,7 +104,7 @@ class Analysis {
             const nestedTerm = this.calcDocTerms(propertiesMapping, childrenDocument);
 
             return propertiesMapping.reduce((acc, _, childrenField) => (
-              acc.update(`${field}.${childrenField}`, List(), list => (
+              acc.update(`${field}.${childrenField}`, List(), (list) => (
                 list.push(nestedTerm.get(childrenField, Map()))
               ))
             ), newFieldAcc);
@@ -113,11 +113,11 @@ class Analysis {
 
         return childrenDocuments.reduce((newFieldAcc, childrenDocument) => (
           this.calcDocTerms(propertiesMapping, childrenDocument)
-            .mapKeys(childrenField => `${field}.${childrenField}`)
+            .mapKeys((childrenField) => `${field}.${childrenField}`)
             .reduce((fieldAcc, termCount, childrenField) => (
-              fieldAcc.update(childrenField, Map(), oldTermCount => (
+              fieldAcc.update(childrenField, Map(), (oldTermCount) => (
                 termCount.reduce((termAcc, count, term) => (
-                  termAcc.update(term, 0, oldCount => oldCount + count)
+                  termAcc.update(term, 0, (oldCount) => oldCount + count)
                 ), oldTermCount)
               ))
             ), newFieldAcc)
@@ -129,9 +129,9 @@ class Analysis {
         const analyzerName = fieldMapping.get('analyzer', 'standard');
         const terms = this.getCountedTerms(analyzerName, value);
 
-        const fieldTermCount = docTermsAcc.update(field, Map(), oldTerms => (
+        const fieldTermCount = docTermsAcc.update(field, Map(), (oldTerms) => (
           terms.reduce((termsAcc, count, term) => (
-            termsAcc.update(term, 0, oldCount => oldCount + count)
+            termsAcc.update(term, 0, (oldCount) => oldCount + count)
           ), oldTerms)
         ));
 
@@ -140,11 +140,11 @@ class Analysis {
         }
 
         return this.calcDocTerms(fields, document, field)
-          .mapKeys(key => `${field}.${key}`)
+          .mapKeys((key) => `${field}.${key}`)
           .reduce((fieldAcc, termCount, childrenField) => (
-            fieldAcc.update(childrenField, Map(), oldTermCount => (
+            fieldAcc.update(childrenField, Map(), (oldTermCount) => (
               termCount.reduce((termAcc, count, term) => (
-                termAcc.update(term, 0, oldCount => oldCount + count)
+                termAcc.update(term, 0, (oldCount) => oldCount + count)
               ), oldTermCount)
             ))
           ), fieldTermCount);

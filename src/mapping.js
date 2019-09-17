@@ -17,13 +17,13 @@ const mappingParsing = (_mapping = {}) => {
       }
 
       return fieldMapping
-        .update('properties', Map(), properties => mappingParsing(properties));
+        .update('properties', Map(), (properties) => mappingParsing(properties));
     }
 
     return fieldMapping.update('type', (value = 'text') => value)
       .update('analyzer', (value = 'standard') => value)
       .update('search_analyzer', (value = fieldMapping.get('analyzer', 'standard')) => value)
-      .update('fields', Map(), fields => mappingParsing(fields));
+      .update('fields', Map(), (fields) => mappingParsing(fields));
   });
 };
 

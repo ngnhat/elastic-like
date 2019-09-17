@@ -140,9 +140,9 @@ class ElasticLike {
 
       return nestedIds
         .reduce((nestedIdsAcc, value, key) => (
-          nestedIdsAcc.update(key, Set(), currentVal => currentVal.intersect(value))
+          nestedIdsAcc.update(key, Set(), (currentVal) => currentVal.intersect(value))
         ), docIdsAcc)
-        .filter(value => !value.isEmpty());
+        .filter((value) => !value.isEmpty());
     }, nestedDocIdsMustAppear) || Map();
   }
 
@@ -167,7 +167,7 @@ class ElasticLike {
       const nestedIds = this.#calcNestedIds(_clause, nestedDocIdsMustAppear);
 
       return nestedIds.reduce((acc, indexs, docId) => (
-        acc.update(docId, Set(), currentIndexs => currentIndexs.union(indexs))
+        acc.update(docId, Set(), (currentIndexs) => currentIndexs.union(indexs))
       ), accNestedIds);
     }, Map());
   }
@@ -286,7 +286,7 @@ class ElasticLike {
       const docScore = this.#calculate(_clause, docIdsMustAppear, isNested);
 
       return docScore.reduce((accScore, score, docId) => (
-        accScore.update(docId, 0, currentScore => currentScore + score)
+        accScore.update(docId, 0, (currentScore) => currentScore + score)
       ), accDocScore || Map());
     }, null);
 
@@ -294,7 +294,7 @@ class ElasticLike {
       const docScore = this.#calculate(_clause, docIdsMustAppear, isNested);
 
       return docScore.reduce((accScore, score, docId) => (
-        accScore.update(docId, 0, currentScore => currentScore + score)
+        accScore.update(docId, 0, (currentScore) => currentScore + score)
       ), accDocScore);
     }, docScoreIndex || Map());
   }
