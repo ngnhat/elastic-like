@@ -8,7 +8,7 @@ const {
   asciiFoldingTokenizer,
   nGramTokenizerCreater,
   edgeNGramTokenizerCreater,
-} = require('tokenizers');
+} = require('tokenizes');
 
 const initialAnalysisValue = Map()
   .set('standard', standardTokenizer)
