@@ -6,8 +6,8 @@ const {
   asciiFolding,
   standardTokenizer,
   asciiFoldingTokenizer,
-  nGramTokenizerCreater,
-  edgeNGramTokenizerCreater,
+  nGramTokenizerCreator,
+  edgeNGramTokenizerCreator,
 } = require('tokenizes');
 
 const initialAnalysisValue = Map()
@@ -51,16 +51,16 @@ const analysisParsing = (_analysisConfig = {}) => {
       throw new Error(`[Analysis Parsing Exception] the tokenizer ${tokenizerName} is invalid`);
     }
 
-    const tokenizerCreater = {
-      ngram: nGramTokenizerCreater,
-      edge_ngram: edgeNGramTokenizerCreater,
+    const tokenizerCreator = {
+      ngram: nGramTokenizerCreator,
+      edge_ngram: edgeNGramTokenizerCreator,
     }[tokenizerType];
 
-    if (!tokenizerCreater) {
+    if (!tokenizerCreator) {
       throw new Error(`[Analysis Parsing Exception] the tokenizer type ${tokenizerType} is not supported`);
     }
 
-    const tokenizerFunc = tokenizerCreater({
+    const tokenizerFunc = tokenizerCreator({
       min: minGram,
       max: maxGram,
       tokenChars: tokenChars.toJS(),
